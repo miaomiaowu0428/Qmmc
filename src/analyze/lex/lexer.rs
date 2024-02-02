@@ -1,24 +1,27 @@
+use crate::analyze::lex::line::Line;
+use crate::analyze::lex::source_file::SourceFile;
+use crate::analyze::lex::token::TokenType::AndKeyword;
+use crate::analyze::lex::token::TokenType::BadToken;
+use crate::analyze::lex::token::TokenType::BangEqualsToken;
+use crate::analyze::lex::token::TokenType::BangToken;
+use crate::analyze::lex::token::TokenType::EqualsToken;
+use crate::analyze::lex::token::TokenType::FalseKeyword;
+use crate::analyze::lex::token::TokenType::FloatPointToken;
+use crate::analyze::lex::token::TokenType::IdentifierToken;
+use crate::analyze::lex::token::TokenType::IntegerToken;
+use crate::analyze::lex::token::TokenType::MinusToken;
+use crate::analyze::lex::token::TokenType::OrKeyword;
+use crate::analyze::lex::token::TokenType::PlusToken;
+use crate::analyze::lex::token::TokenType::SlashToken;
+use crate::analyze::lex::token::TokenType::StarToken;
+use crate::analyze::lex::token::TokenType::WhitespaceToken;
+use crate::analyze::lex::token::TokenType::{
+    EndLineToken, LeftBraceToken, LeftParenthesisToken, RightBraceToken, RightParenthesisToken,
+    TrueKeyword,
+};
+use crate::analyze::lex::token::{Token, TokenType};
 use std::cell::RefCell;
 use TokenType::SemicolonToken;
-use crate::analyze::lex::line::Line;
-use crate::analyze::lex::souece_file::SourceFile;
-use crate::analyze::lex::token::{Token, TokenType};
-use crate::analyze::lex::token::TokenType::{EndLineToken, LeftBraceToken, LeftParenthesisToken, RightBraceToken, RightParenthesisToken, TrueKeyword};
-use crate::analyze::lex::token::TokenType::StarToken;
-use crate::analyze::lex::token::TokenType::SlashToken;
-use crate::analyze::lex::token::TokenType::PlusToken;
-use crate::analyze::lex::token::TokenType::OrKeyword;
-use crate::analyze::lex::token::TokenType::MinusToken;
-use crate::analyze::lex::token::TokenType::IntegerToken;
-use crate::analyze::lex::token::TokenType::IdentifierToken;
-use crate::analyze::lex::token::TokenType::FloatPointToken;
-use crate::analyze::lex::token::TokenType::FalseKeyword;
-use crate::analyze::lex::token::TokenType::EqualsToken;
-use crate::analyze::lex::token::TokenType::BangToken;
-use crate::analyze::lex::token::TokenType::BangEqualsToken;
-use crate::analyze::lex::token::TokenType::BadToken;
-use crate::analyze::lex::token::TokenType::AndKeyword;
-use crate::analyze::lex::token::TokenType::WhitespaceToken;
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -26,7 +29,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(text: &str, ) -> Self {
+    pub fn new(text: &str) -> Self {
         let chars = text.chars().collect();
         Self {
             chars,
@@ -45,13 +48,15 @@ impl Lexer {
                 lines.push(line);
             }
         }
-        lines.retain(|l| l.tokens.borrow().len() > 0
-            && match l.tokens.borrow()[0].token_type {
-            WhitespaceToken => false,
-            BadToken => false,
-            EndLineToken => false,
-            SemicolonToken => false,
-            _ => true,
+        lines.retain(|l| {
+            l.tokens.borrow().len() > 0
+                && match l.tokens.borrow()[0].token_type {
+                    WhitespaceToken => false,
+                    BadToken => false,
+                    EndLineToken => false,
+                    SemicolonToken => false,
+                    _ => true,
+                }
         });
         lines.into()
     }
@@ -63,9 +68,7 @@ impl Lexer {
                     let number_token = self.lex_number();
                     tokens.push(number_token);
                 }
-                Some(c) if c.is_alphabetic() => {
-                    tokens.push(self.lex_keyword_or_identifier())
-                }
+                Some(c) if c.is_alphabetic() => tokens.push(self.lex_keyword_or_identifier()),
                 Some(c) if *c == '{' => {
                     tokens.push(self.lex_operator());
                     break;
@@ -85,12 +88,10 @@ impl Lexer {
                     self.move_next();
                     break;
                 }
-                Some(c)if c.is_whitespace() => {
+                Some(c) if c.is_whitespace() => {
                     self.lex_white_spase();
                 }
-                Some(_) => {
-                    tokens.push(self.lex_operator())
-                }
+                Some(_) => tokens.push(self.lex_operator()),
                 None => {
                     break;
                 }
@@ -100,12 +101,15 @@ impl Lexer {
         Line::new(tokens)
     }
 
-
-    fn lex_number(&self, ) -> Token {
+    fn lex_number(&self) -> Token {
         // let start = self.pos.borrow();
         let mut text = self.lex_while(|c| c.is_ascii_digit() || c == '.' || c == '_');
         text = text.replace('_', "");
-        let token_type = if text.contains('.') { FloatPointToken } else { IntegerToken };
+        let token_type = if text.contains('.') {
+            FloatPointToken
+        } else {
+            IntegerToken
+        };
         Token::new(token_type, text)
     }
     fn lex_keyword_or_identifier(&self) -> Token {
@@ -182,7 +186,6 @@ impl Lexer {
         }
     }
 
-
     fn lex_white_spase(&self) -> Token {
         let text = self.lex_while(|c| c.is_whitespace());
         Token::new(WhitespaceToken, text)
@@ -204,7 +207,8 @@ impl Lexer {
         c
     }
     fn lex_while<F>(&self, predict: F) -> String
-    where F: Fn(char) -> bool
+    where
+        F: Fn(char) -> bool,
     {
         let mut text = String::new();
         loop {
@@ -213,10 +217,11 @@ impl Lexer {
                     text.push(*c);
                     self.move_next();
                 }
-                _ => { break; }
+                _ => {
+                    break;
+                }
             }
         }
         text
     }
 }
-

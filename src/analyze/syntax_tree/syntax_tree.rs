@@ -1,12 +1,17 @@
+use crate::analyze::diagnostic::DiagnosticBag;
+use crate::analyze::lex::token::TokenType::FloatPointToken;
+use crate::analyze::lex::token::{Token, TokenType};
+use crate::analyze::lex::SourceFile;
+use crate::analyze::syntax_tree::expression::Expression;
+use crate::analyze::syntax_tree::expression::Expression::{
+    BinaryExpression, ParenthesizedExpression, UnaryExpression,
+};
 use std::cell::RefCell;
 use Expression::{IdentifierExpression, LiteralExpression};
-use TokenType::{FalseKeyword, IdentifierToken, IntegerToken, LeftParenthesisToken, RightBraceToken, RightParenthesisToken, TrueKeyword};
-use crate::analyze::diagnostc::DiagnosticBag;
-use crate::analyze::lex::SourceFile;
-use crate::analyze::lex::token::{Token, TokenType};
-use crate::analyze::lex::token::TokenType::FloatPointToken;
-use crate::analyze::syntax_tree::expression::Expression;
-use crate::analyze::syntax_tree::expression::Expression::{BinaryExpression, ParenthesizedExpression, UnaryExpression};
+use TokenType::{
+    FalseKeyword, IdentifierToken, IntegerToken, LeftParenthesisToken, RightBraceToken,
+    RightParenthesisToken, TrueKeyword,
+};
 
 pub struct SyntaxTree {
     source_file: SourceFile,
@@ -37,13 +42,12 @@ impl SyntaxTree {
         res
     }
 
-
     pub fn parse_line(&self) -> Expression {
         *self.pos.borrow_mut() = 0;
         let expr = self.parse_expression();
         self.match_and_move(
             |t| t.token_type == TokenType::SemicolonToken || t.token_type == RightBraceToken,
-            vec![TokenType::SemicolonToken, RightBraceToken]
+            vec![TokenType::SemicolonToken, RightBraceToken],
         );
         expr
     }
@@ -95,20 +99,19 @@ impl SyntaxTree {
         left
     }
 
-
     fn parse_literal_expression(&self) -> Expression {
         match self.current().token_type {
-            IntegerToken
-            | FloatPointToken
-            | TrueKeyword
-            | FalseKeyword
-            => {
-                let res = LiteralExpression { literal_token: self.current() };
+            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => {
+                let res = LiteralExpression {
+                    literal_token: self.current(),
+                };
                 self.move_next();
                 res
             }
             IdentifierToken => {
-                let res = IdentifierExpression { identifier_token: self.current() };
+                let res = IdentifierExpression {
+                    identifier_token: self.current(),
+                };
                 self.move_next();
                 res
             }
@@ -118,7 +121,7 @@ impl SyntaxTree {
                 let expr = self.parse_expression();
                 self.match_and_move(
                     |t| t.token_type == RightParenthesisToken,
-                    vec![RightParenthesisToken]
+                    vec![RightParenthesisToken],
                 );
                 let right_p = self.current();
                 ParenthesizedExpression {
@@ -128,10 +131,14 @@ impl SyntaxTree {
                 }
             }
             _ => {
-                let res = LiteralExpression { literal_token: self.current() };
+                let res = LiteralExpression {
+                    literal_token: self.current(),
+                };
                 self.match_and_move(
-                    |t| t.token_type == TokenType::SemicolonToken || t.token_type == RightBraceToken,
-                    vec![TokenType::SemicolonToken, RightBraceToken]
+                    |t| {
+                        t.token_type == TokenType::SemicolonToken || t.token_type == RightBraceToken
+                    },
+                    vec![TokenType::SemicolonToken, RightBraceToken],
                 );
                 res
             }
@@ -139,30 +146,28 @@ impl SyntaxTree {
     }
 
     fn match_and_move<F>(&self, predict: F, expected: Vec<TokenType>) -> bool
-    where F: Fn(Token) -> bool {
+    where
+        F: Fn(Token) -> bool,
+    {
         if predict(self.current()) {
             self.move_next();
             true
         } else {
-            self.diagnostics.report_unexpected_token(self.current(), expected);
+            self.diagnostics
+                .report_unexpected_token(self.current(), expected);
             self.move_next();
             false
         }
     }
-
 
     fn peek(&self, offset: usize) -> Token {
         let line_num = self.line_num();
         let pos = self.pos();
 
         if pos + offset >= self.line_len() {
-            self.source_file.lines
-                [line_num].tokens.borrow()
-                [self.line_len() - 1].clone()
+            self.source_file.lines[line_num].tokens.borrow()[self.line_len() - 1].clone()
         } else {
-            self.source_file.lines
-                [line_num].tokens.borrow()
-                [pos + offset].clone()
+            self.source_file.lines[line_num].tokens.borrow()[pos + offset].clone()
         }
     }
     fn current(&self) -> Token {
@@ -173,8 +178,10 @@ impl SyntaxTree {
         self.line_number.borrow().clone()
     }
     fn line_len(&self) -> usize {
-        self.source_file.lines
-            [self.line_num()].tokens.borrow().len()
+        self.source_file.lines[self.line_num()]
+            .tokens
+            .borrow()
+            .len()
     }
     fn pos(&self) -> usize {
         self.pos.borrow().clone()
@@ -188,4 +195,3 @@ impl SyntaxTree {
         *self.pos.borrow_mut() = 0;
     }
 }
-

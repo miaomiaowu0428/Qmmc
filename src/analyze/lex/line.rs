@@ -1,17 +1,24 @@
+#![allow(dead_code)]
+
+use crate::analyze::lex::token::Token;
 use std::cell::RefCell;
 use std::fmt::Display;
-use crate::analyze::lex::token::Token;
-
 
 #[derive(Debug, Clone)]
 pub struct Line {
-    pub tokens:RefCell<Vec<Token>>
+    pub tokens: RefCell<Vec<Token>>,
 }
 impl Line {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             tokens: RefCell::new(tokens),
         }
+    }
+    pub fn len(&self) -> usize {
+        self.tokens.borrow().len()
+    }
+    pub fn get(&self, index: usize) -> Token {
+        self.tokens.borrow().get(index).unwrap().clone()
     }
 }
 

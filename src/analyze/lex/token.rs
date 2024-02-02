@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
-
-use std::fmt::{Debug, Display};
 use colored::Colorize;
+use std::fmt::{Debug, Display};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq,Eq)]
 pub struct Token {
     pub token_type: TokenType,
     pub text: String,
@@ -12,24 +11,28 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_type: TokenType, text: String) -> Self {
-        Self {
-            token_type,
-            text,
-        }
+        Self { token_type, text }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self.token_type {
-            TokenType::BadToken => { format!("{}{} {}", self.token_type.to_string().red(), ":".red(), self.text.red()) }
-            _ => format!("{}: {}", self.token_type, self.text)
+            TokenType::BadToken => {
+                format!(
+                    "{}{} {}",
+                    self.token_type.to_string().red(),
+                    ":".red(),
+                    self.text.red()
+                )
+            }
+            _ => format!("{}: {}", self.token_type, self.text),
         };
         write!(f, "{}", string)
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq,Eq,Copy)]
 pub enum TokenType {
     BadToken,
     WhitespaceToken,
@@ -62,7 +65,7 @@ pub enum TokenType {
 }
 
 impl TokenType {
-    pub fn get_unary_priority(&self)->i32 {
+    pub fn get_unary_priority(&self) -> i32 {
         match self {
             TokenType::PlusToken => 6,
             TokenType::MinusToken => 6,
@@ -71,7 +74,7 @@ impl TokenType {
         }
     }
 
-    pub fn get_binary_priority(&self)->i32 {
+    pub fn get_binary_priority(&self) -> i32 {
         match self {
             TokenType::StarToken => 5,
             TokenType::SlashToken => 5,
@@ -85,7 +88,6 @@ impl TokenType {
         }
     }
 }
-
 
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
