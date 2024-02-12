@@ -2,12 +2,13 @@
 
 use crate::analyze::lex::token::Token;
 use std::cell::RefCell;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Line {
     pub tokens: RefCell<Vec<Token>>,
 }
+
 impl Line {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
@@ -22,11 +23,21 @@ impl Line {
     }
 }
 
+impl Debug for Line {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+        for token in self.tokens.borrow().iter() {
+            string.push_str(&format!("{:?}, ", token));
+        }
+        write!(f, "{}", string)
+    }
+}
+
 impl Display for Line {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut string = String::new();
         for token in self.tokens.borrow().iter() {
-            string.push_str(&format!("{}, ", token));
+            string.push_str(&format!("{} ", token));
         }
         write!(f, "{}", string)
     }

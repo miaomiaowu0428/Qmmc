@@ -4,11 +4,14 @@ use crate::analyze::lex::token::{Token, TokenType};
 use colored::Colorize;
 use std::cell::RefCell;
 use TokenType::{FloatPointToken, IntegerToken};
+use crate::analyze::lex::line::Line;
 use crate::evaluate::Type;
 
 pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
 }
+
+
 
 impl DiagnosticBag {
     pub(crate) fn report_invalid_literal(&self, token: Token) {
@@ -23,6 +26,15 @@ impl DiagnosticBag {
         Self {
             diagnostics: RefCell::new(Vec::new()),
         }
+    }
+
+    pub(crate) fn report_undefined_variable(&self, token: Token) {
+        let message = format!("Found no variable named '{}'", token.text.red());
+        self.report(message);
+    }
+    pub(crate) fn report_immutable_variable(&self, token: Token) {
+        let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", token.text.red());
+        self.report(message);
     }
     pub fn report(&self, message: String) {
         self.diagnostics.borrow_mut().push(Diagnostic { message });
@@ -42,16 +54,19 @@ impl DiagnosticBag {
         self.report(message);
     }
 
-    pub fn report_unexpected_token(&self, token: Token, expected: Vec<TokenType>) {
+    pub fn report_unexpected_token(&self, token: Token, expected: &Vec<TokenType>, line: Line, line_num: usize, pos: usize, ) {
         let expected = expected
             .iter()
-            .map(|t| format!("<{}>", t))
+            .map(|t| format!("<{:?}>", t))
             .collect::<Vec<String>>()
             .join(", ");
         let message = format!(
-            "Unexpected token '<{}>', expected '{}'",
-            token.to_string().red(),
-            expected.bright_green()
+            ">({},{}): {}\nUnexpected token '<{}>', expected '{}'",
+            line_num,
+            pos,
+            line,
+            format!("{:?}", token.token_type).red(),
+            expected.bright_green(),
         );
         self.report(message);
     }
@@ -78,6 +93,12 @@ impl DiagnosticBag {
         let msg = format!("operator {} is not defined for {}",
                           op_token.text.red(),
                           operand_type.to_string().bright_yellow());
+        self.report(msg);
+    }
+
+    pub(crate) fn report_unexpected_expression(&self, line: Line) {
+        let msg = format!("unexpected expression '{}_'. consider add a semicolon",
+                          format!("{}", line).red());
         self.report(msg);
     }
 }

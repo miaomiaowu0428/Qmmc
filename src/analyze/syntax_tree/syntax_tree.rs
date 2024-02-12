@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::TokenType::FloatPointToken;
 use crate::analyze::lex::token::{Token, TokenType};
@@ -7,11 +9,12 @@ use crate::analyze::syntax_tree::expression::Expression::{
     BinaryExpression, ParenthesizedExpression, UnaryExpression,
 };
 use std::cell::RefCell;
-use Expression::{IdentifierExpression, LiteralExpression};
-use TokenType::{
-    FalseKeyword, IdentifierToken, IntegerToken, LeftParenthesisToken, RightBraceToken,
-    RightParenthesisToken, TrueKeyword,
-};
+use Expression::{AssignmentExpression, DeclarationExpression, IdentifierExpression, LiteralExpression};
+use TokenType::{FalseKeyword, IdentifierToken, IntegerToken, LeftBraceToken, LeftParenthesisToken, RightBraceToken, RightParenthesisToken, TrueKeyword, ValKeyword, VarKeyword};
+use crate::analyze::lex::line::Line;
+use crate::analyze::lex::TokenType::EqualsToken;
+use crate::analyze::syntax_tree::block::Block;
+use crate::analyze::syntax_tree::Expression::{BracketedExpression, Statement};
 
 pub struct SyntaxTree {
     source_file: SourceFile,
@@ -32,11 +35,12 @@ impl SyntaxTree {
 
     pub fn parse_file(&self) -> Vec<Expression> {
         let mut res = Vec::new();
-        loop {
-            if self.line_number.borrow().clone() >= self.source_file.lines.len() {
-                break;
+        while self.line_num() < self.source_file.len() {
+            if self.current().token_type == LeftBraceToken {
+                res.push(self.parse_block());
+            } else {
+                res.push(self.parse_line());
             }
-            res.push(self.parse_line());
             self.move_next_line();
         }
         res
@@ -44,18 +48,88 @@ impl SyntaxTree {
 
     pub fn parse_line(&self) -> Expression {
         *self.pos.borrow_mut() = 0;
-        let expr = self.parse_expression();
-        self.match_and_move(
-            |t| t.token_type == TokenType::SemicolonToken || t.token_type == RightBraceToken,
-            vec![TokenType::SemicolonToken, RightBraceToken],
-        );
-        expr
+
+        let expr;
+
+        match self.current().token_type {
+            LeftBraceToken => {
+                expr = self.parse_block();
+            }
+            _ => {
+                expr = self.parse_expression();
+                self.move_next();
+            }
+        }
+
+        match self.current().token_type {
+            TokenType::SemicolonToken => {
+                self.move_next();
+                Statement {
+                    expression: Box::new(expr),
+                    semicolon: self.current(),
+                }
+            }
+            _ => {
+                expr
+            }
+        }
+    }
+
+
+    pub fn parse_block(&self) -> Expression {
+        let lb = self.current();
+        self.move_next_line();
+        let block = Block::new();
+        while self.line_num() < self.source_file.len()
+            && self.current().token_type != RightBraceToken
+        {
+            block.expressions.borrow_mut().push(self.parse_line());
+            self.move_next_line();
+        }
+        let rb = self.match_token(|t| t.token_type == RightBraceToken, vec![RightBraceToken]);
+        self.move_next();
+        self.check_block(&block);
+        BracketedExpression {
+            left_b: lb,
+            block,
+            right_b: rb,
+        }
     }
     pub fn parse_expression(&self) -> Expression {
-        let expr = self.parse_operator_expression(0);
-        // self.move_next();
-
-        expr
+        match self.current().token_type {
+            ValKeyword | VarKeyword => {
+                let declaration_token = self.current();
+                self.move_next();
+                let identifier_token = self.current();
+                self.move_next();
+                let equals_token = self.match_token(|t| t.token_type == TokenType::EqualsToken, vec![TokenType::EqualsToken]);
+                let expression = self.parse_operator_expression(0);
+                let semicolon_token = self.match_token(|t| t.token_type == TokenType::SemicolonToken, vec![TokenType::SemicolonToken]);
+                DeclarationExpression {
+                    declaration_token,
+                    identifier_token,
+                    equals_token,
+                    expression: Box::new(expression),
+                    semicolon_token,
+                }
+            }
+            IdentifierToken if self.peek(1).token_type == EqualsToken => {
+                let identifier_token = self.current();
+                self.move_next();
+                let equals_token = self.match_token(|t| t.token_type == TokenType::EqualsToken, vec![TokenType::EqualsToken]);
+                let expression = self.parse_operator_expression(0);
+                let semicolon_token = self.match_token(|t| t.token_type == TokenType::SemicolonToken, vec![TokenType::SemicolonToken]);
+                AssignmentExpression {
+                    identifier_token,
+                    equals_token,
+                    expression: Box::new(expression),
+                    semicolon_token,
+                }
+            }
+            _ => {
+                self.parse_operator_expression(0)
+            }
+        }
     }
 
     fn parse_operator_expression(&self, parent_priority: i32) -> Expression {
@@ -119,44 +193,30 @@ impl SyntaxTree {
                 let left_p = self.current();
                 self.move_next();
                 let expr = self.parse_expression();
-                self.match_and_move(
+
+                let right_p = self.match_token(
                     |t| t.token_type == RightParenthesisToken,
                     vec![RightParenthesisToken],
                 );
-                let right_p = self.current();
                 ParenthesizedExpression {
                     left_p,
                     expression: Box::new(expr),
                     right_p,
                 }
             }
-            _ => {
-                let res = LiteralExpression {
-                    literal_token: self.current(),
-                };
-                self.match_and_move(
-                    |t| {
-                        t.token_type == TokenType::SemicolonToken || t.token_type == RightBraceToken
-                    },
-                    vec![TokenType::SemicolonToken, RightBraceToken],
-                );
-                res
-            }
+            _ => LiteralExpression { literal_token: self.current() },
         }
     }
 
-    fn match_and_move<F>(&self, predict: F, expected: Vec<TokenType>) -> bool
+    fn match_token<F>(&self, predict: F, expected: Vec<TokenType>) -> Token
     where
         F: Fn(Token) -> bool,
     {
         if predict(self.current()) {
-            self.move_next();
-            true
+            self.move_next()
         } else {
-            self.diagnostics
-                .report_unexpected_token(self.current(), expected);
-            self.move_next();
-            false
+            self.diagnostics.report_unexpected_token(self.current(), &expected, self.current_line(), self.line_num(), self.pos());
+            Token::new(expected[0], "".to_string())
         }
     }
 
@@ -165,33 +225,85 @@ impl SyntaxTree {
         let pos = self.pos();
 
         if pos + offset >= self.line_len() {
-            self.source_file.lines[line_num].tokens.borrow()[self.line_len() - 1].clone()
+            self.current_line().get(self.line_len() - 1)
         } else {
-            self.source_file.lines[line_num].tokens.borrow()[pos + offset].clone()
+            self.current_line().get(pos + offset)
         }
     }
     fn current(&self) -> Token {
         self.peek(0)
+    }
+    fn current_line(&self) -> Line {
+        if self.line_num() >= self.source_file.lines.len() {
+            Line::new(vec![Token::new(TokenType::EndLineToken, "".to_string())])
+        } else {
+            self.source_file.lines[self.line_num()].clone()
+        }
     }
 
     fn line_num(&self) -> usize {
         self.line_number.borrow().clone()
     }
     fn line_len(&self) -> usize {
-        self.source_file.lines[self.line_num()]
-            .tokens
-            .borrow()
-            .len()
+        if self.line_num() >= self.source_file.lines.len() {
+            1
+        } else {
+            self.current_line()
+                .tokens
+                .borrow()
+                .len()
+        }
     }
     fn pos(&self) -> usize {
         self.pos.borrow().clone()
     }
-    fn move_next(&self) {
+    fn move_next(&self) -> Token {
+        let c = self.current();
         *self.pos.borrow_mut() += 1;
+        c
+    }
+
+    fn next_line(&self) -> Line {
+        if self.line_num() + 1 >= self.source_file.lines.len() {
+            Line::new(vec![Token::new(TokenType::EndLineToken, "".to_string())])
+        } else {
+            self.source_file.lines[self.line_num() + 1].clone()
+        }
     }
 
     fn move_next_line(&self) {
         *self.line_number.borrow_mut() += 1;
         *self.pos.borrow_mut() = 0;
+    }
+    fn check_block(&self, block: &Block) {
+        let expressions = block.expressions.borrow();
+        if expressions.len() == 0 {
+            return;
+        }
+        for i in 0..expressions.len() - 1 {
+            match expressions.get(i).unwrap() {
+                Statement { .. } => {},
+                DeclarationExpression { .. } => {},
+                AssignmentExpression { .. } => {},
+                LiteralExpression { literal_token, .. } => {
+                    self.diagnostics.report_unexpected_expression(self.source_file.lines[literal_token.line_num.borrow().clone()].clone());
+                }
+                IdentifierExpression { identifier_token } => {
+                    self.diagnostics.report_unexpected_expression(self.source_file.lines[identifier_token.line_num.borrow().clone()].clone());
+                }
+                UnaryExpression { operator_token, .. } => {
+                    self.diagnostics.report_unexpected_expression(self.source_file.lines[operator_token.line_num.borrow().clone()].clone());
+                }
+                BinaryExpression { operator_token: op, .. } => {
+                    self.diagnostics.report_unexpected_expression(self.source_file.lines[op.line_num.borrow().clone()].clone());
+                }
+                BracketedExpression { block, .. } => {
+                    self.check_block(block);
+                }
+                ParenthesizedExpression { left_p, .. } => {
+                    self.diagnostics.report_unexpected_expression(self.source_file.lines[left_p.line_num.borrow().clone()].clone());
+                }
+            }
+        }
     }
 }

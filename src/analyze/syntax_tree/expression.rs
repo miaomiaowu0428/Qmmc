@@ -1,12 +1,18 @@
 #![allow(dead_code)]
 
 use crate::analyze::lex::token::Token;
-use Expression::{
-    BinaryExpression, BracketedExpression, IdentifierExpression, LiteralExpression,
-    ParenthesizedExpression, UnaryExpression,
-};
+use Expression::{AssignmentExpression, BinaryExpression, BracketedExpression, IdentifierExpression, LiteralExpression, ParenthesizedExpression, Statement, UnaryExpression};
+use TokenType::{FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
+use crate::analyze::lex::TokenType;
+use crate::analyze::syntax_tree::block::Block;
+use crate::analyze::syntax_tree::Expression::DeclarationExpression;
+use crate::evaluate::Type;
 
 pub enum Expression {
+    Statement {
+        expression: Box<Expression>,
+        semicolon: Token,
+    },
     LiteralExpression {
         literal_token: Token,
     },
@@ -25,7 +31,7 @@ pub enum Expression {
     // {}
     BracketedExpression {
         left_b: Token,
-        expression: Box<Expression>,
+        block: Block,
         right_b: Token,
     },
     // ()
@@ -34,9 +40,58 @@ pub enum Expression {
         expression: Box<Expression>,
         right_p: Token,
     },
+    DeclarationExpression {
+        declaration_token: Token,
+        identifier_token: Token,
+        equals_token: Token,
+        expression: Box<Expression>,
+        semicolon_token: Token,
+    },
+    AssignmentExpression {
+        identifier_token: Token,
+        equals_token: Token,
+        expression: Box<Expression>,
+        semicolon_token: Token,
+    },
 }
 
 impl Expression {
+    pub fn r#type(&self) -> Type {
+        match self {
+            Statement { .. } => {
+                Type::None
+            }
+            LiteralExpression { literal_token } => match literal_token.token_type {
+                IntegerToken => Type::I32,
+                FloatPointToken => Type::F32,
+                TrueKeyword | FalseKeyword => Type::Bool,
+                _ => Type::None,
+            },
+            IdentifierExpression { identifier_token } => {
+                Type::Unknown
+            }
+            UnaryExpression { operand, .. } => {
+                operand.r#type()
+            }
+            BinaryExpression { .. } => {
+                Type::Unknown
+            }
+            BracketedExpression { block, .. } => {
+                block.expressions.borrow().last().unwrap().r#type()
+            }
+            ParenthesizedExpression { expression, .. } => {
+                expression.r#type()
+            }
+            DeclarationExpression { expression, .. } => {
+                Type::None
+            }
+            AssignmentExpression { expression, .. } => {
+                Type::None
+            }
+        }
+    }
+
+
     pub fn print(&self, indent: i32) {
         let mut indent_str = "".to_string();
         for _ in 0..=indent {
@@ -44,6 +99,10 @@ impl Expression {
         }
 
         match self {
+            Statement { expression, semicolon } => {
+                expression.print(indent);
+                println!("{}{}", indent_str, semicolon);
+            }
             LiteralExpression { literal_token } => {
                 println!("{}{}", indent_str, literal_token)
             }
@@ -68,7 +127,7 @@ impl Expression {
             }
             BracketedExpression {
                 left_b,
-                expression,
+                block: expression,
                 right_b,
             } => {
                 println!("{}{}", indent_str, left_b);
@@ -83,6 +142,27 @@ impl Expression {
                 println!("{}{}", indent_str, left_p);
                 expression.print(indent + 1);
                 println!("{}{}", indent_str, right_p);
+            }
+            DeclarationExpression {
+                declaration_token,
+                identifier_token,
+                equals_token,
+                expression,
+                semicolon_token,
+            } => {
+                println!("{}{} {} {}", indent_str, declaration_token, identifier_token, equals_token);
+                expression.print(indent + 1);
+                println!("{}{}", indent_str, semicolon_token);
+            }
+            AssignmentExpression {
+                identifier_token,
+                equals_token,
+                expression,
+                semicolon_token
+            } => {
+                println!("{}{} {}", indent_str, identifier_token, equals_token);
+                expression.print(indent + 1);
+                println!("{}{}", indent_str, semicolon_token);
             }
         }
     }

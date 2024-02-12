@@ -15,13 +15,16 @@ use crate::analyze::lex::token::TokenType::PlusToken;
 use crate::analyze::lex::token::TokenType::SlashToken;
 use crate::analyze::lex::token::TokenType::StarToken;
 use crate::analyze::lex::token::TokenType::WhitespaceToken;
-use crate::analyze::lex::token::TokenType::{
-    EndLineToken, LeftBraceToken, LeftParenthesisToken, RightBraceToken, RightParenthesisToken,
-    TrueKeyword,
-};
-use crate::analyze::lex::token::{Token, TokenType};
+use crate::analyze::lex::token::TokenType::LeftParenthesisToken;
+use crate::analyze::lex::token::TokenType::LeftBraceToken;
+use crate::analyze::lex::token::TokenType::EndLineToken;
+use crate::analyze::lex::token::TokenType::RightBraceToken;
+use crate::analyze::lex::token::TokenType::RightParenthesisToken;
+use crate::analyze::lex::token::TokenType::TrueKeyword;
+use crate::analyze::lex::token::Token;
+use crate::analyze::lex::token::TokenType;
 use std::cell::RefCell;
-use TokenType::SemicolonToken;
+use TokenType::{SemicolonToken, ValKeyword, VarKeyword};
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -69,8 +72,11 @@ impl Lexer {
                     tokens.push(number_token);
                 }
                 Some(c) if c.is_alphabetic() => tokens.push(self.lex_keyword_or_identifier()),
-                Some(c) if *c == '{' => {
+                Some(c) if *c == '{' && tokens.len() == 0=> {
                     tokens.push(self.lex_operator());
+                    break;
+                }
+                Some(c) if *c == '{' => {
                     break;
                 }
                 Some(c) if *c == ';' => {
@@ -84,10 +90,6 @@ impl Lexer {
                 Some(c) if *c == '}' => {
                     break;
                 }
-                Some(c) if c.is_ascii_control() => {
-                    self.move_next();
-                    break;
-                }
                 Some(c) if c.is_whitespace() => {
                     self.lex_white_spase();
                 }
@@ -97,7 +99,7 @@ impl Lexer {
                 }
             }
         }
-        tokens.push(Token::new(EndLineToken, "".to_string()));
+        // tokens.push(Token::new(EndLineToken, "end-line".to_string()));
         Line::new(tokens)
     }
 
@@ -119,6 +121,8 @@ impl Lexer {
             "or" => OrKeyword,
             "true" => TrueKeyword,
             "false" => FalseKeyword,
+            "val" => ValKeyword,
+            "var" => VarKeyword,
             _ => IdentifierToken,
         };
         Token::new(token_type, text)
