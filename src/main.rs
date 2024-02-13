@@ -16,7 +16,7 @@ static PATH: &str = "G:/codefile/rust_source_file/Qmmc/resource/";
 
 fn main() {
     let mut file =
-        File::open(Path::new(&format!("{}{}", PATH, "test_declaration.qmm"))).expect("Could not open file");
+        File::open(Path::new(&format!("{}{}", PATH, "test_scope.qmm"))).expect("Could not open file");
     let mut contents = String::new();
     file.read_to_string(&mut contents)
         .expect("Could not read file");

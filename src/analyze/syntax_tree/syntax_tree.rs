@@ -40,8 +40,9 @@ impl SyntaxTree {
                 res.push(self.parse_block());
             } else {
                 res.push(self.parse_line());
+                self.move_next_line();
             }
-            self.move_next_line();
+
         }
         res
     }
@@ -87,7 +88,7 @@ impl SyntaxTree {
             self.move_next_line();
         }
         let rb = self.match_token(|t| t.token_type == RightBraceToken, vec![RightBraceToken]);
-        self.move_next();
+        self.move_next_line();
         self.check_block(&block);
         BracketedExpression {
             left_b: lb,
@@ -103,7 +104,10 @@ impl SyntaxTree {
                 let identifier_token = self.current();
                 self.move_next();
                 let equals_token = self.match_token(|t| t.token_type == TokenType::EqualsToken, vec![TokenType::EqualsToken]);
-                let expression = self.parse_operator_expression(0);
+                let expression = match self.peek(1).token_type {
+                    LeftBraceToken => self.parse_block(),
+                    _ => self.parse_operator_expression(0),
+                };
                 let semicolon_token = self.match_token(|t| t.token_type == TokenType::SemicolonToken, vec![TokenType::SemicolonToken]);
                 DeclarationExpression {
                     declaration_token,
@@ -117,7 +121,10 @@ impl SyntaxTree {
                 let identifier_token = self.current();
                 self.move_next();
                 let equals_token = self.match_token(|t| t.token_type == TokenType::EqualsToken, vec![TokenType::EqualsToken]);
-                let expression = self.parse_operator_expression(0);
+                let expression = match self.peek(1).token_type {
+                    LeftBraceToken => self.parse_block(),
+                    _ => self.parse_operator_expression(0),
+                };
                 let semicolon_token = self.match_token(|t| t.token_type == TokenType::SemicolonToken, vec![TokenType::SemicolonToken]);
                 AssignmentExpression {
                     identifier_token,

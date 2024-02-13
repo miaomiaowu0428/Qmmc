@@ -1,0 +1,16 @@
+{
+    val a = 10;
+    var b = 30;
+    val c = 50;
+    b = {
+            val c = 20;
+            c
+        };
+
+    var d = {
+        val d = 40;
+        c
+    };
+
+    d
+}

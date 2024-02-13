@@ -2,6 +2,7 @@
 
 use crate::evaluate::value::Value;
 
+#[derive(Debug, Clone)]
 pub struct Variable {
     pub mutable: bool,
     pub value: Value,

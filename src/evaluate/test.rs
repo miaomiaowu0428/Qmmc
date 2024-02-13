@@ -36,4 +36,29 @@ mod tests {
         assert_eq!(evaluator.diagnostics.diagnostics.borrow()[0].message, "Assignment to immutable variable '\u{1b}[31mb\u{1b}[0m' because it's declared with 'val'. consider change it to var");
         assert_eq!(evaluator.diagnostics.diagnostics.borrow()[1].message, "Found no variable named '\u{1b}[31mc\u{1b}[0m'");
     }
+
+
+
+    #[test]
+    fn test_scope() {
+        let input = r#"
+                            {
+                                val a = 10;
+                                var b = 20;
+                                b = {
+                                        val c = 30;
+                                        c
+                                    };
+                                b
+                            }
+                            "#;
+        let lexer = Lexer::new(input);
+        let source_file = lexer.lex();
+        let syntax_tree = SyntaxTree::new(source_file);
+        let expressions = syntax_tree.parse_file();
+        let evaluator = Evaluator::new();
+        let res = evaluator.evaluate(expressions);
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0].to_string(), "30");
+    }
 }

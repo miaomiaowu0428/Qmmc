@@ -54,12 +54,12 @@ impl Lexer {
         lines.retain(|l| {
             l.tokens.borrow().len() > 0
                 && match l.tokens.borrow()[0].token_type {
-                    WhitespaceToken => false,
-                    BadToken => false,
-                    EndLineToken => false,
-                    SemicolonToken => false,
-                    _ => true,
-                }
+                WhitespaceToken => false,
+                BadToken => false,
+                EndLineToken => false,
+                // SemicolonToken => false,
+                _ => true,
+            }
         });
         lines.into()
     }
@@ -72,11 +72,8 @@ impl Lexer {
                     tokens.push(number_token);
                 }
                 Some(c) if c.is_alphabetic() => tokens.push(self.lex_keyword_or_identifier()),
-                Some(c) if *c == '{' && tokens.len() == 0=> {
-                    tokens.push(self.lex_operator());
-                    break;
-                }
                 Some(c) if *c == '{' => {
+                    tokens.push(self.lex_operator());
                     break;
                 }
                 Some(c) if *c == ';' => {
@@ -87,9 +84,19 @@ impl Lexer {
                     tokens.push(self.lex_operator());
                     break;
                 }
+                Some(c)if *c == '}'
+                    && self.peek(1).is_some()
+                    && *self.peek(1).unwrap() == ';'
+                    && tokens.len() == 0
+                => {
+                    tokens.push(self.lex_operator());
+                    tokens.push(self.lex_operator());
+                    break;
+                }
                 Some(c) if *c == '}' => {
                     break;
                 }
+
                 Some(c) if c.is_whitespace() => {
                     self.lex_white_spase();
                 }

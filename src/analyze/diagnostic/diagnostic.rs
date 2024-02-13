@@ -7,10 +7,16 @@ use TokenType::{FloatPointToken, IntegerToken};
 use crate::analyze::lex::line::Line;
 use crate::evaluate::Type;
 
+#[derive(Debug, Clone)]
 pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
 }
 
+impl DiagnosticBag {
+    pub(crate) fn append(&self, p0: DiagnosticBag) {
+        self.diagnostics.borrow_mut().append(&mut p0.diagnostics.borrow_mut());
+    }
+}
 
 
 impl DiagnosticBag {
@@ -28,12 +34,12 @@ impl DiagnosticBag {
         }
     }
 
-    pub(crate) fn report_undefined_variable(&self, token: Token) {
-        let message = format!("Found no variable named '{}'", token.text.red());
+    pub(crate) fn report_undefined_variable(&self, name:&str) {
+        let message = format!("Found no variable named '{}'", name.to_string().red());
         self.report(message);
     }
-    pub(crate) fn report_immutable_variable(&self, token: Token) {
-        let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", token.text.red());
+    pub(crate) fn report_immutable_variable(&self, name: &str) {
+        let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", name.to_string().red());
         self.report(message);
     }
     pub fn report(&self, message: String) {
@@ -61,7 +67,7 @@ impl DiagnosticBag {
             .collect::<Vec<String>>()
             .join(", ");
         let message = format!(
-            ">({},{}): {}\nUnexpected token '<{}>', expected '{}'",
+            ">({},{}): {}Unexpected token '<{}>', expected '{}'",
             line_num,
             pos,
             line,
@@ -103,6 +109,7 @@ impl DiagnosticBag {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Diagnostic {
     pub message: String,
 }

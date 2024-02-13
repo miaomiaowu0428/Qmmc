@@ -12,7 +12,7 @@ mod tests {
                             1.3+4;;"#;
         let lexer = Lexer::new(&input);
         let source_file = lexer.lex();
-        assert_eq!(source_file.len(), 4);
+        assert_eq!(source_file.len(), 5);
 
         let line1 = source_file.get(0).unwrap();
         assert_eq!(line1.len(), 10);
