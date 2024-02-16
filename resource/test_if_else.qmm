@@ -1,0 +1,21 @@
+var a = 7
+if a == 10  {
+    val a = 5
+    a = true
+} else if a == 8 {
+    a = true
+} else if 3 == 5 {
+    var b = 8
+} else if true {
+    8
+} else {
+    a = 3.0
+}
+a = if a == true {
+        false
+    }
+    else {
+        8
+    }
+
+a

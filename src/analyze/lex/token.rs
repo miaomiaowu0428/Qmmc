@@ -1,15 +1,17 @@
 #![allow(dead_code)]
 
-use std::cell::RefCell;
-use colored::Colorize;
 use std::fmt::{Debug, Display};
-use TokenType::{FloatPointToken, IdentifierToken, IntegerToken, TrueKeyword};
+
+use colored::Colorize;
+
+use TokenType::{ElseKeyword, FalseKeyword, FloatPointToken, IdentifierToken, IfKeyword, IntegerToken, TrueKeyword, ValKeyword, VarKeyword};
 
 #[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub text: String,
-    pub line_num: RefCell<usize>,
+    pub line_num: usize,
+    pub column_num: usize,
 }
 
 
@@ -24,11 +26,14 @@ impl Token {
     pub fn new(
         token_type: TokenType,
         text: String,
+        line_num: usize,
+        column_num: usize,
     ) -> Self {
         Self {
             token_type,
             text,
-            line_num: RefCell::new(0),
+            line_num,
+            column_num,
         }
     }
 }
@@ -55,9 +60,9 @@ impl Display for Token {
         // write!(f, "{}", self.text)
         write!(f, "{}",
                match self.token_type {
-                   IntegerToken | FloatPointToken | TrueKeyword | TokenType::FalseKeyword => format!("{}", self.text.green()),
+                   IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => format!("{}", self.text.green()),
                    IdentifierToken => format!("{}", self.text.bold()),
-                   TokenType::ValKeyword | TokenType::VarKeyword => format!("{}", self.text.bold().yellow()),
+                   ValKeyword | VarKeyword| IfKeyword| ElseKeyword => format!("{}", self.text.bold().yellow()),
 
                    _ => format!("{}", self.text),
                })
@@ -96,6 +101,9 @@ pub enum TokenType {
     SemicolonToken,
     ValKeyword,
     VarKeyword,
+    EndOfFileToken,
+    ElseKeyword,
+    IfKeyword,
 }
 
 impl TokenType {
@@ -132,7 +140,7 @@ impl Debug for TokenType {
             IntegerToken => "Integer",
             FloatPointToken => "FloatPoint",
             TrueKeyword => "TrueKeyword",
-            TokenType::FalseKeyword => "FalseKeyword",
+            FalseKeyword => "FalseKeyword",
             IdentifierToken => "Identifier",
             TokenType::PlusToken => "PlusToken",
             TokenType::MinusToken => "MinusToken",
@@ -149,8 +157,11 @@ impl Debug for TokenType {
             TokenType::LeftBraceToken => "LBToken",
             TokenType::RightBraceToken => "RBToken",
             TokenType::SemicolonToken => "SemicolonToken",
-            TokenType::ValKeyword => "ValKeyword",
-            TokenType::VarKeyword => "VarKeyword",
+            ValKeyword => "ValKeyword",
+            VarKeyword => "VarKeyword",
+            TokenType::EndOfFileToken => "EndOfFileToken",
+            ElseKeyword => "ElseKeyword",
+            IfKeyword => "IfKeyword",
         };
         write!(f, "{}", string)
     }

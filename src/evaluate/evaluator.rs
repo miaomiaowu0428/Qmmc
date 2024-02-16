@@ -1,9 +1,11 @@
 use std::rc::Rc;
-use Expression::{AssignmentExpression, BinaryExpression, BracketedExpression, DeclarationExpression, IdentifierExpression, LiteralExpression, ParenthesizedExpression, Statement, UnaryExpression};
-use TokenType::{AndKeyword, BangEqualsToken, BangToken, EqualsEqualsToken, MinusToken, OrKeyword, PlusToken, SlashToken, StarToken, VarKeyword};
+
+use Expression::{AssignmentExpression, BinaryExpression, BracketedExpression, DeclarationExpression, IdentifierExpression, IfExpression, LiteralExpression, ParenthesizedExpression, Statement, UnaryExpression};
+use TokenType::{AndKeyword, BangToken, EqualsEqualsToken, MinusToken, OrKeyword, PlusToken, SlashToken, StarToken, VarKeyword};
+
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::{Token, TokenType};
-use crate::analyze::lex::TokenType::{FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
+use crate::analyze::lex::TokenType::{BangEqualsToken, FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
 use crate::analyze::syntax_tree::{Block, Expression};
 use crate::evaluate::r#type::Type::{F32, I32};
 use crate::evaluate::runtime_scope::RuntimeScope;
@@ -40,14 +42,6 @@ impl Evaluator {
         results
     }
 
-    pub fn evaluate_block(&self, block: Block) -> Value {
-        let mut res = Value::None;
-        for expr in block.expressions.take().into_iter() {
-            res = self.evaluate_expression(expr);
-        }
-        res
-    }
-
     pub fn evaluate_expression(&self, expression: Expression) -> Value {
         match expression {
             Statement { expression, .. } => {
@@ -60,12 +54,8 @@ impl Evaluator {
             IdentifierExpression { identifier_token } => {
                 self.evaluate_identifier(identifier_token)
             }
-            DeclarationExpression {
-                declaration_token,
-                identifier_token,
-                expression, ..
-            } => {
-                self.evaluate_declaration(declaration_token, identifier_token, *expression)
+            DeclarationExpression { .. } => {
+                self.evaluate_declaration(expression)
             }
             AssignmentExpression {
                 identifier_token,
@@ -89,9 +79,26 @@ impl Evaluator {
             ParenthesizedExpression { expression, .. } => {
                 self.evaluate_expression(*expression)
             }
+            IfExpression { if_token, condition, true_expr, else_token, false_expr: false_expe } => {
+                let condition = self.evaluate_expression(*condition);
+                if condition == Value::bool(true) {
+                    self.evaluate_expression(*true_expr)
+                } else if let Some(false_expr) = false_expe {
+                    self.evaluate_expression(*false_expr)
+                } else {
+                    Value::None
+                }
+            }
         }
     }
 
+    pub fn evaluate_block(&self, block: Block) -> Value {
+        let mut res = Value::None;
+        for expr in block.expressions.take().into_iter() {
+            res = self.evaluate_expression(expr);
+        }
+        res
+    }
 
     pub fn evaluate_identifier(&self, identifier_token: Token) -> Value {
         if let Some(variable) = self.scope.get_global(&identifier_token.text) {
@@ -101,11 +108,14 @@ impl Evaluator {
             Value::None
         }
     }
-    pub fn evaluate_declaration(&self, declaration_token: Token, identifier_token: Token, expression: Expression) -> Value {
-        let value = self.evaluate_expression(expression);
-        let mutable = declaration_token.token_type == VarKeyword;
-        let variable = Variable::new(mutable, value);
-        self.scope.set_local(&identifier_token.text, variable);
+
+    pub fn evaluate_declaration(&self, declaration_expression: Expression) -> Value {
+        if let DeclarationExpression { declaration_token, identifier_token, expression, .. } = declaration_expression.clone() {
+            let value = self.evaluate_expression(*expression.clone());
+            let mutable = declaration_token.token_type == VarKeyword;
+            let variable = Variable::new(mutable, value, declaration_expression.clone());
+            self.scope.set_local(&identifier_token.text, variable);
+        }
 
         Value::None
     }
@@ -115,14 +125,13 @@ impl Evaluator {
         if let Some(v) = self.scope.get_global(name) {
             if v.mutable {
                 let value = self.evaluate_expression(expression);
-                self.scope.set_global(name, Variable::new_mutable(value));
+                self.scope.set_global(name, Variable::new_mutable(value, v.declared_expression));
             } else {
-                self.diagnostics.report_immutable_variable(&identifier_token.text);
+                self.diagnostics.report_immutable_variable(identifier_token.clone(), v.declared_expression.clone());
             }
         } else { self.diagnostics.report_undefined_variable(&identifier_token.text); }
         Value::None
     }
-
 
     pub fn evaluate_binary_expression(&self, left: Expression, operator_token: Token, right: Expression) -> Value {
         let left = self.evaluate_expression(left);
@@ -146,12 +155,14 @@ impl Evaluator {
             (F32, StarToken, I32) => { Value::f32(left.as_f32() * right.as_i32() as f32) }
             (I32, SlashToken, F32) => { Value::f32(left.as_i32() as f32 / right.as_f32()) }
             (F32, SlashToken, I32) => { Value::f32(left.as_f32() / right.as_i32() as f32) }
-            (Bool, EqualsEqualsToken, Bool) => { Value::bool(left.as_bool() == right.as_bool()) }
-            (I32, EqualsEqualsToken, I32) => { Value::bool(left.as_i32() == right.as_i32()) }
-            (F32, EqualsEqualsToken, F32) => { Value::bool(left.as_f32() == right.as_f32()) }
-            (Bool, BangEqualsToken, Bool) => { Value::bool(left.as_bool() != right.as_bool()) }
-            (I32, BangEqualsToken, I32) => { Value::bool(left.as_i32() != right.as_i32()) }
-            (F32, BangEqualsToken, F32) => { Value::bool(left.as_f32() != right.as_f32()) }
+            // (Bool, EqualsEqualsToken, Bool) => { Value::bool(left.as_bool() == right.as_bool()) }
+            // (I32, EqualsEqualsToken, I32) => { Value::bool(left.as_i32() == right.as_i32()) }
+            // (F32, EqualsEqualsToken, F32) => { Value::bool(left.as_f32() == right.as_f32()) }
+            // (Bool, BangEqualsToken, Bool) => { Value::bool(left.as_bool() != right.as_bool()) }
+            // (I32, BangEqualsToken, I32) => { Value::bool(left.as_i32() != right.as_i32()) }
+            // (F32, BangEqualsToken, F32) => { Value::bool(left.as_f32() != right.as_f32()) }
+            (_, EqualsEqualsToken, _) => { Value::bool(left == right) }
+            (_, BangEqualsToken, _) => { Value::bool(left != right) }
             _ => {
                 self.diagnostics.report_invalid_binary_op(left.r#type(), operator_token.clone(), right.r#type());
                 Value::None

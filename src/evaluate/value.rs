@@ -1,4 +1,5 @@
 use std::fmt::Display;
+
 use crate::evaluate::r#type::Type;
 
 #[allow(non_camel_case_types)]
@@ -9,6 +10,21 @@ pub enum Value {
     bool(bool),
     f32(f32),
 }
+
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::None, Value::None) => true,
+            (Value::i32(i1), Value::i32(i2)) => i1 == i2,
+            (Value::bool(b1), Value::bool(b2)) => b1 == b2,
+            (Value::f32(f1), Value::f32(f2)) => f1 == f2,
+            _ => false,
+        }
+    }
+
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -49,5 +65,4 @@ impl Value {
             _ => panic!("Value is not a bool"),
         }
     }
-
 }

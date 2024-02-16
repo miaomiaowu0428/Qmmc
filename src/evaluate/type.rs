@@ -1,11 +1,12 @@
 #![allow(non_camel_case_types)]
 
 use std::fmt::{Display, Formatter};
-use Type::Unknown;
-use crate::evaluate::Type::F32;
-use crate::evaluate::Type::Bool;
-use crate::evaluate::Type::I32;
 
+use Type::Unknown;
+
+use crate::evaluate::Type::Bool;
+use crate::evaluate::Type::F32;
+use crate::evaluate::Type::I32;
 
 pub enum Type {
     Unknown,

@@ -1,3 +1,4 @@
+pub use diagnostic::DiagnosticBag;
+
 mod diagnostic;
 
-pub use diagnostic::DiagnosticBag;

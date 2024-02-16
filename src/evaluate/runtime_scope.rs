@@ -2,7 +2,11 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::rc::Rc;
+
+use colored::Colorize;
+
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::evaluate::variable::Variable;
 
@@ -12,6 +16,20 @@ pub struct RuntimeScope {
     pub parent: Option<Rc<RuntimeScope>>,
     pub values: RefCell<ValueMap>,
     pub(crate) diagnostics: DiagnosticBag,
+}
+
+impl Debug for RuntimeScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let values = self.values.borrow();
+        let data = values.iter().map(|(name, variable)| {
+            let chinese_count = name.chars().filter(|c| !c.is_ascii()).count();
+            let width = 8 - chinese_count;
+            let name = if variable.mutable { name.underline() } else { name.normal() };
+            format!("{:^width$}: {:?}, \n", name, variable.value, width = width)
+        }).collect::<String>();
+
+        write!(f, "{}", data)
+    }
 }
 
 impl RuntimeScope {

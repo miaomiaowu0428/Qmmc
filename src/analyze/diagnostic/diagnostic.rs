@@ -1,29 +1,18 @@
 #![allow(dead_code)]
 
-use crate::analyze::lex::token::{Token, TokenType};
-use colored::Colorize;
 use std::cell::RefCell;
+
+use colored::Colorize;
+
 use TokenType::{FloatPointToken, IntegerToken};
-use crate::analyze::lex::line::Line;
+
+use crate::analyze::lex::token::{Token, TokenType};
+use crate::analyze::syntax_tree::Expression;
 use crate::evaluate::Type;
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
-}
-
-impl DiagnosticBag {
-    pub(crate) fn append(&self, p0: DiagnosticBag) {
-        self.diagnostics.borrow_mut().append(&mut p0.diagnostics.borrow_mut());
-    }
-}
-
-
-impl DiagnosticBag {
-    pub(crate) fn report_invalid_literal(&self, token: Token) {
-        let message = format!("Invalid literal '{}'", token.text.red());
-        self.report(message);
-    }
 }
 
 
@@ -34,12 +23,27 @@ impl DiagnosticBag {
         }
     }
 
-    pub(crate) fn report_undefined_variable(&self, name:&str) {
+    pub(crate) fn append(&self, p0: DiagnosticBag) {
+        self.diagnostics.borrow_mut().append(&mut p0.diagnostics.borrow_mut());
+    }
+
+    pub(crate) fn report_invalid_literal(&self, token: Token) {
+        let message = format!("Invalid literal '{}'", token.text.red());
+        self.report(message);
+    }
+
+    pub(crate) fn report_undefined_variable(&self, name: &str) {
         let message = format!("Found no variable named '{}'", name.to_string().red());
         self.report(message);
     }
-    pub(crate) fn report_immutable_variable(&self, name: &str) {
-        let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", name.to_string().red());
+    pub(crate) fn report_immutable_variable(&self, token: Token, expression: Expression) {
+        let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", token.to_string().red());
+        let line_num = expression.to_token_vec().first().unwrap().line_num;
+        let column_num = expression.to_token_vec().first().unwrap().column_num;
+        let message = format!("{message}\n> variable {token} declared here: ({line_num},{column_num}) {}", expression
+            .to_token_vec().iter()
+            .map(|t| format!("{} ", t.to_string()))
+            .collect::<String>());
         self.report(message);
     }
     pub fn report(&self, message: String) {
@@ -60,16 +64,26 @@ impl DiagnosticBag {
         self.report(message);
     }
 
-    pub fn report_unexpected_token(&self, token: Token, expected: &Vec<TokenType>, line: Line, line_num: usize, pos: usize, ) {
+    pub fn report_unexpected_token(&self, tokens_in_the_same_line: Vec<&Token>, token: Token, expected: &Vec<TokenType>, ) {
+        let line = tokens_in_the_same_line
+            .iter()
+            .map(|t| if t.column_num == token.column_num {
+                t.to_string().red().to_string()
+            } else {
+                t.to_string().normal().to_string()
+            })
+            .collect::<Vec<String>>()
+            .join(" ");
         let expected = expected
             .iter()
             .map(|t| format!("<{:?}>", t))
             .collect::<Vec<String>>()
             .join(", ");
+
         let message = format!(
-            ">({},{}): {}Unexpected token '<{}>', expected '{}'",
-            line_num,
-            pos,
+            ">({},{}): {}\nUnexpected token '<{}>', expected '{}'",
+            token.line_num,
+            token.column_num,
             line,
             format!("{:?}", token.token_type).red(),
             expected.bright_green(),
@@ -99,12 +113,6 @@ impl DiagnosticBag {
         let msg = format!("operator {} is not defined for {}",
                           op_token.text.red(),
                           operand_type.to_string().bright_yellow());
-        self.report(msg);
-    }
-
-    pub(crate) fn report_unexpected_expression(&self, line: Line) {
-        let msg = format!("unexpected expression '{}_'. consider add a semicolon",
-                          format!("{}", line).red());
         self.report(msg);
     }
 }
