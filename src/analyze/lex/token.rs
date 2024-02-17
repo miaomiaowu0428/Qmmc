@@ -4,7 +4,36 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::{ElseKeyword, FalseKeyword, FloatPointToken, IdentifierToken, IfKeyword, IntegerToken, TrueKeyword, ValKeyword, VarKeyword};
+use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PrecentToken, WhileKeyword};
+use TokenType::BadToken;
+use TokenType::BangEqualsToken;
+use TokenType::BangToken;
+use TokenType::ElseKeyword;
+use TokenType::EndLineToken;
+use TokenType::EndOfFileToken;
+use TokenType::EqualsEqualsToken;
+use TokenType::EqualsToken;
+use TokenType::FalseKeyword;
+use TokenType::FloatPointToken;
+use TokenType::IdentifierToken;
+use TokenType::IfKeyword;
+use TokenType::IntegerToken;
+use TokenType::LeftBraceToken;
+use TokenType::LeftParenthesisToken;
+use TokenType::MinusToken;
+use TokenType::OrKeyword;
+use TokenType::PlusToken;
+use TokenType::RightBraceToken;
+use TokenType::RightParenthesisToken;
+use TokenType::SemicolonToken;
+use TokenType::SlashToken;
+use TokenType::StarToken;
+use TokenType::TrueKeyword;
+use TokenType::ValKeyword;
+use TokenType::VarKeyword;
+use TokenType::WhitespaceToken;
+use TokenType::BreakKeyword;
+use TokenType::LoopKeyword;
 
 #[derive(Clone)]
 pub struct Token {
@@ -41,7 +70,7 @@ impl Token {
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self.token_type {
-            TokenType::BadToken => {
+            BadToken => {
                 format!(
                     "{}{} {}",
                     format!("{:?}", self.token_type).red(),
@@ -93,8 +122,10 @@ pub enum TokenType {
     SlashToken,
     EqualsToken,
     BangEqualsToken,
-    EqualsEqualsToken,
+    LessThanToken,
+    GreatThanToken,
 
+    EqualsEqualsToken,
     BangToken,
     AndKeyword,
     OrKeyword,
@@ -104,28 +135,36 @@ pub enum TokenType {
     EndOfFileToken,
     ElseKeyword,
     IfKeyword,
+    WhileKeyword,
+    LoopKeyword,
+    BreakKeyword,
+    PrecentToken,
 }
 
 impl TokenType {
     pub fn get_unary_priority(&self) -> i32 {
         match self {
-            TokenType::PlusToken => 6,
-            TokenType::MinusToken => 6,
-            TokenType::BangToken => 6,
+            PlusToken => 10,
+            MinusToken => 10,
+            BangToken => 10,
             _ => 0,
         }
     }
 
     pub fn get_binary_priority(&self) -> i32 {
         match self {
-            TokenType::StarToken => 5,
-            TokenType::SlashToken => 5,
-            TokenType::PlusToken => 4,
-            TokenType::MinusToken => 4,
-            TokenType::EqualsEqualsToken => 3,
-            TokenType::BangEqualsToken => 3,
-            TokenType::AndKeyword => 2,
-            TokenType::OrKeyword => 1,
+
+            StarToken => 7,
+            SlashToken => 7,
+            PlusToken => 6,
+            MinusToken => 6,
+            PrecentToken => 5,
+            LessThanToken => 3,
+            GreatThanToken => 3,
+            EqualsEqualsToken => 3,
+            BangEqualsToken => 3,
+            AndKeyword => 2,
+            OrKeyword => 1,
             _ => 0,
         }
     }
@@ -134,34 +173,40 @@ impl TokenType {
 impl Debug for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self {
-            TokenType::BadToken => "BadToken",
-            TokenType::WhitespaceToken => "Whitespace",
-            TokenType::EndLineToken => "EndLineToken",
+            BadToken => "BadToken",
+            WhitespaceToken => "Whitespace",
+            EndLineToken => "EndLineToken",
             IntegerToken => "Integer",
             FloatPointToken => "FloatPoint",
             TrueKeyword => "TrueKeyword",
             FalseKeyword => "FalseKeyword",
             IdentifierToken => "Identifier",
-            TokenType::PlusToken => "PlusToken",
-            TokenType::MinusToken => "MinusToken",
-            TokenType::StarToken => "StarToken",
-            TokenType::SlashToken => "SlashToken",
-            TokenType::EqualsToken => "EqualsToken",
-            TokenType::BangEqualsToken => "BangEqualsToken",
-            TokenType::EqualsEqualsToken => "EqualsEqualsToken",
-            TokenType::BangToken => "BangToken",
-            TokenType::AndKeyword => "AndKeyword",
-            TokenType::OrKeyword => "OrKeyword",
-            TokenType::LeftParenthesisToken => "LPToken",
-            TokenType::RightParenthesisToken => "RPToken",
-            TokenType::LeftBraceToken => "LBToken",
-            TokenType::RightBraceToken => "RBToken",
-            TokenType::SemicolonToken => "SemicolonToken",
+            PlusToken => "PlusToken",
+            MinusToken => "MinusToken",
+            StarToken => "StarToken",
+            SlashToken => "SlashToken",
+            EqualsToken => "EqualsToken",
+            BangEqualsToken => "BangEqualsToken",
+            EqualsEqualsToken => "EqualsEqualsToken",
+            BangToken => "BangToken",
+            AndKeyword => "AndKeyword",
+            OrKeyword => "OrKeyword",
+            LeftParenthesisToken => "LPToken",
+            RightParenthesisToken => "RPToken",
+            LeftBraceToken => "LBToken",
+            RightBraceToken => "RBToken",
+            SemicolonToken => "SemicolonToken",
             ValKeyword => "ValKeyword",
             VarKeyword => "VarKeyword",
-            TokenType::EndOfFileToken => "EndOfFileToken",
+            EndOfFileToken => "EndOfFileToken",
             ElseKeyword => "ElseKeyword",
             IfKeyword => "IfKeyword",
+            WhileKeyword => "WhileKeyword",
+            LoopKeyword => "LoopKeyword",
+            BreakKeyword => "BreakKeyword",
+            LessThanToken => "LessThanToken",
+            GreatThanToken => "GreatThanToken",
+            PercentToken => "PercentTToken",
         };
         write!(f, "{}", string)
     }

@@ -10,5 +10,6 @@ mod r#type;
 mod runtime_scope;
 mod variable;
 mod test;
+mod control_command;
 
 

@@ -1,0 +1,10 @@
+var a = 0
+loop {
+    a = a + 1
+    while a < 20 {
+        a = a + 1
+    }
+    if a > 10 {
+        break
+    }
+}

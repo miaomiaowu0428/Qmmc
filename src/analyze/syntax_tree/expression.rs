@@ -1,13 +1,25 @@
 #![allow(dead_code)]
 
-use Expression::{AssignmentExpression, BinaryExpression, BracketedExpression, IdentifierExpression, LiteralExpression, ParenthesizedExpression, Statement, UnaryExpression};
-use TokenType::{FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
+use Expression::AssignmentExpression;
+use Expression::BinaryExpression;
+use Expression::BracketedExpression;
+use Expression::IdentifierExpression;
+use Expression::LiteralExpression;
+use Expression::ParenthesizedExpression;
+use Expression::Statement;
+use Expression::UnaryExpression;
+use TokenType::FalseKeyword;
+use TokenType::FloatPointToken;
+use TokenType::IntegerToken;
+use TokenType::TrueKeyword;
 use Type::Unknown;
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::TokenType;
 use crate::analyze::syntax_tree::block::Block;
-use crate::analyze::syntax_tree::Expression::{DeclarationExpression, IfExpression};
+use crate::analyze::syntax_tree::Expression::{BreakExpression, DeclarationExpression, LoopExpression};
+use crate::analyze::syntax_tree::Expression::IfExpression;
+use crate::analyze::syntax_tree::Expression::WhileExpression;
 use crate::evaluate::Type;
 
 #[derive(Debug, Clone)]
@@ -61,6 +73,18 @@ pub enum Expression {
         else_token: Option<Token>,
         false_expr: Option<Box<Expression>>,
     },
+    WhileExpression {
+        while_token: Token,
+        condition: Box<Expression>,
+        body: Box<Expression>,
+    },
+    LoopExpression {
+        loop_token: Token,
+        body: Box<Expression>,
+    },
+    BreakExpression {
+        break_token: Token,
+    },
 }
 
 impl Expression {
@@ -81,6 +105,9 @@ impl Expression {
             DeclarationExpression { expression, .. } => Type::None,
             AssignmentExpression { expression, .. } => Type::None,
             IfExpression { true_expr: then_block, .. } => then_block.r#type(),
+            WhileExpression { body: block, .. } => Type::None,
+            LoopExpression { .. } => Type::None,
+            BreakExpression { .. } => Type::None,
         }
     }
 
@@ -140,10 +167,93 @@ impl Expression {
                     None => {}
                 }
             }
+            WhileExpression { while_token, condition, body: block, } => {
+                res.push(while_token.clone());
+                res.append(&mut condition.to_token_vec());
+                res.append(&mut block.to_token_vec());
+            }
+            LoopExpression { loop_token, body: block, } => {
+                res.push(loop_token.clone());
+                res.append(&mut block.to_token_vec());
+            }
+            BreakExpression { break_token, } => {
+                res.push(break_token.clone());
+            }
         }
         res
     }
 
+    pub fn print_as_line(&self, indent: i32) {
+        let mut indent_str = "".to_string();
+        for _ in 0..indent {
+            indent_str.push_str("    ");
+        }
+        match self {
+            Statement { expression, semicolon } => {
+                expression.print_as_line(indent);
+                println!("{}{}", indent_str, semicolon);
+            }
+            LiteralExpression { literal_token } => {
+                print!("{}{}", indent_str, literal_token)
+            }
+            IdentifierExpression { identifier_token } => {
+                print!("{}{}", indent_str, identifier_token)
+            }
+            UnaryExpression { operator_token, operand, } => {
+                print!("{}{}", indent_str, operator_token);
+                operand.print_inline(indent);
+            }
+            BinaryExpression { left, operator_token, right, } => {
+                left.print_as_line(indent);
+                print!(" {} ", operator_token);
+                right.print_inline(indent);
+            }
+            BracketedExpression { left_b, block: expression, right_b, } => {
+                println!("{}{}", indent_str, left_b);
+                expression.print_as_line(indent + 1);
+                print!("{}{}", indent_str, right_b);
+            }
+            ParenthesizedExpression { left_p, expression, right_p, } => {
+                print!("{}{}", indent_str, left_p);
+                expression.print_inline(indent);
+                print!("{}{}", indent_str, right_p);
+            }
+            DeclarationExpression { declaration_token, identifier_token, equals_token, expression, } => {
+                print!("{}{} {} {} ", indent_str, declaration_token, identifier_token, equals_token);
+                expression.print_inline(indent);
+            }
+            AssignmentExpression { identifier_token, equals_token, expression, } => {
+                print!("{}{} {} ", indent_str, identifier_token, equals_token);
+                expression.print_inline(indent);
+            }
+            IfExpression { if_token, condition, true_expr: then_block, else_token, false_expr: else_block, } => {
+                print!("{}{} ", indent_str, if_token);
+                condition.print_inline(indent);
+                print!(" ");
+                then_block.print_inline(indent);
+                match else_token {
+                    Some(token) => {
+                        print!(" {}", token);
+                        else_block.as_ref().unwrap().print_inline(indent);
+                    }
+                    None => {}
+                }
+            }
+            WhileExpression { while_token, condition, body: block, } => {
+                print!("{}{} ", indent_str, while_token);
+                condition.print_inline(indent);
+                print!(" ");
+                block.print_inline(indent);
+            }
+            LoopExpression { loop_token, body: block, } => {
+                print!("{}{} ", indent_str, loop_token);
+                block.print_inline(indent);
+            }
+            BreakExpression { break_token, } => {
+                print!("{}{}", indent_str, break_token);
+            }
+        } //end match
+    }
     pub fn print_inline(&self, indent: i32) {
         let mut indent_str = "".to_string();
         for _ in 0..indent {
@@ -204,64 +314,18 @@ impl Expression {
                     None => {}
                 }
             }
-        }
-    }
-    pub fn print_as_line(&self, indent: i32) {
-        let mut indent_str = "".to_string();
-        for _ in 0..indent {
-            indent_str.push_str("    ");
-        }
-        match self {
-            Statement { expression, semicolon } => {
-                expression.print_as_line(indent);
-                println!("{}{}", indent_str, semicolon);
-            }
-            LiteralExpression { literal_token } => {
-                print!("{}{}", indent_str, literal_token)
-            }
-            IdentifierExpression { identifier_token } => {
-                print!("{}{}", indent_str, identifier_token)
-            }
-            UnaryExpression { operator_token, operand, } => {
-                print!("{}{}", indent_str, operator_token);
-                operand.print_inline(indent);
-            }
-            BinaryExpression { left, operator_token, right, } => {
-                left.print_as_line(indent);
-                print!(" {} ", operator_token);
-                right.print_inline(indent);
-            }
-            BracketedExpression { left_b, block: expression, right_b, } => {
-                println!("{}{}", indent_str, left_b);
-                expression.print_as_line(indent + 1);
-                print!("{}{}", indent_str, right_b);
-            }
-            ParenthesizedExpression { left_p, expression, right_p, } => {
-                print!("{}{}", indent_str, left_p);
-                expression.print_inline(indent);
-                print!("{}{}", indent_str, right_p);
-            }
-            DeclarationExpression { declaration_token, identifier_token, equals_token, expression, } => {
-                print!("{}{} {} {} ", indent_str, declaration_token, identifier_token, equals_token);
-                expression.print_inline(indent);
-            }
-            AssignmentExpression { identifier_token, equals_token, expression, } => {
-                print!("{}{} {} ", indent_str, identifier_token, equals_token);
-                expression.print_inline(indent);
-            }
-            IfExpression { if_token, condition, true_expr: then_block, else_token, false_expr: else_block, } => {
-                print!("{}{} ", indent_str, if_token);
+            WhileExpression { while_token, condition, body: block, } => {
+                print!(" {} ", while_token);
                 condition.print_inline(indent);
-                print!(" ");
-                then_block.print_inline(indent);
-                match else_token {
-                    Some(token) => {
-                        print!(" {}", token);
-                        else_block.as_ref().unwrap().print_inline(indent);
-                    }
-                    None => {}
-                }
+                block.print_inline(indent);
             }
-        } //end match
+            LoopExpression { loop_token, body: block, } => {
+                print!(" {} ", loop_token);
+                block.print_inline(indent);
+            }
+            BreakExpression { break_token, } => {
+                print!("{}{}", indent_str, break_token);
+            }
+        }
     }
 }

@@ -1,30 +1,36 @@
 use std::cell::RefCell;
 
-use TokenType::{EndOfFileToken, SemicolonToken, ValKeyword, VarKeyword};
-
-use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
-use crate::analyze::lex::token::TokenType::AndKeyword;
-use crate::analyze::lex::token::TokenType::BadToken;
-use crate::analyze::lex::token::TokenType::BangEqualsToken;
-use crate::analyze::lex::token::TokenType::BangToken;
-use crate::analyze::lex::token::TokenType::EqualsToken;
-use crate::analyze::lex::token::TokenType::FalseKeyword;
-use crate::analyze::lex::token::TokenType::FloatPointToken;
-use crate::analyze::lex::token::TokenType::IdentifierToken;
-use crate::analyze::lex::token::TokenType::IntegerToken;
-use crate::analyze::lex::token::TokenType::LeftBraceToken;
-use crate::analyze::lex::token::TokenType::LeftParenthesisToken;
-use crate::analyze::lex::token::TokenType::MinusToken;
-use crate::analyze::lex::token::TokenType::OrKeyword;
-use crate::analyze::lex::token::TokenType::PlusToken;
-use crate::analyze::lex::token::TokenType::RightBraceToken;
-use crate::analyze::lex::token::TokenType::RightParenthesisToken;
-use crate::analyze::lex::token::TokenType::SlashToken;
-use crate::analyze::lex::token::TokenType::StarToken;
-use crate::analyze::lex::token::TokenType::TrueKeyword;
-use crate::analyze::lex::token::TokenType::WhitespaceToken;
-use crate::analyze::lex::TokenType::EqualsEqualsToken;
+use crate::analyze::lex::token::Token;
+
+use TokenType::{BreakKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PrecentToken};
+use TokenType::EndOfFileToken;
+use TokenType::ElseKeyword;
+use TokenType::SemicolonToken;
+use TokenType::ValKeyword;
+use TokenType::VarKeyword;
+use TokenType::WhileKeyword;
+use TokenType::AndKeyword;
+use TokenType::BadToken;
+use TokenType::BangEqualsToken;
+use TokenType::BangToken;
+use TokenType::EqualsToken;
+use TokenType::FalseKeyword;
+use TokenType::FloatPointToken;
+use TokenType::IdentifierToken;
+use TokenType::IntegerToken;
+use TokenType::LeftBraceToken;
+use TokenType::LeftParenthesisToken;
+use TokenType::MinusToken;
+use TokenType::OrKeyword;
+use TokenType::PlusToken;
+use TokenType::RightBraceToken;
+use TokenType::RightParenthesisToken;
+use TokenType::SlashToken;
+use TokenType::StarToken;
+use TokenType::TrueKeyword;
+use TokenType::WhitespaceToken;
+use TokenType::EqualsEqualsToken;
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -96,8 +102,11 @@ impl Lexer {
             "false" => FalseKeyword,
             "val" => ValKeyword,
             "var" => VarKeyword,
-            "if" => TokenType::IfKeyword,
-            "else" => TokenType::ElseKeyword,
+            "if" => IfKeyword,
+            "else" => ElseKeyword,
+            "while" => WhileKeyword,
+            "loop" => LoopKeyword,
+            "break" => BreakKeyword,
             _ => IdentifierToken,
         };
         Token::new(token_type, text, self.line_number(), self.column_number())
@@ -157,6 +166,18 @@ impl Lexer {
             '!' => {
                 self.move_next();
                 Token::new(BangToken, "!".to_string(), self.line_number(), self.column_number())
+            }
+            '<' => {
+                self.move_next();
+                Token::new(LessThanToken, "<".to_string(), self.line_number(), self.column_number())
+            }
+            '>' => {
+                self.move_next();
+                Token::new(GreatThanToken, ">".to_string(), self.line_number(), self.column_number())
+            }
+            '%' => {
+                let c = self.move_next();
+                Token::new(PrecentToken, c.to_string(), self.line_number(), self.column_number())
             }
             c => {
                 self.move_next();

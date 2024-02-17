@@ -24,8 +24,8 @@ impl Debug for RuntimeScope {
         let data = values.iter().map(|(name, variable)| {
             let chinese_count = name.chars().filter(|c| !c.is_ascii()).count();
             let width = 8 - chinese_count;
-            let name = if variable.mutable { name.underline() } else { name.normal() };
-            format!("{:^width$}: {:?}, \n", name, variable.value, width = width)
+            let name = if variable.mutable { name.purple() } else { name.bright_green() };
+            format!("{:width$}: {:?}, \n", name, variable.value, width = width)
         }).collect::<String>();
 
         write!(f, "{}", data)

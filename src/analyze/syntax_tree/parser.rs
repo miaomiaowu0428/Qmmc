@@ -2,12 +2,13 @@
 
 use std::cell::RefCell;
 
-use Expression::{IdentifierExpression, Statement};
+use Expression::{BreakExpression, IdentifierExpression, LoopExpression, Statement};
 use Expression::AssignmentExpression;
 use Expression::DeclarationExpression;
 use Expression::LiteralExpression;
-use TokenType::{FalseKeyword, IfKeyword};
+use TokenType::{BreakKeyword, FalseKeyword};
 use TokenType::IdentifierToken;
+use TokenType::IfKeyword;
 use TokenType::IntegerToken;
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
@@ -16,12 +17,14 @@ use TokenType::RightParenthesisToken;
 use TokenType::TrueKeyword;
 use TokenType::ValKeyword;
 use TokenType::VarKeyword;
+use TokenType::WhileKeyword;
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
 use crate::analyze::lex::token::TokenType::FloatPointToken;
 use crate::analyze::lex::TokenType::EqualsToken;
+use crate::analyze::lex::TokenType::LoopKeyword;
 use crate::analyze::syntax_tree::block::Block;
 use crate::analyze::syntax_tree::Expression::BracketedExpression;
 use crate::analyze::syntax_tree::expression::Expression;
@@ -67,8 +70,16 @@ impl Parser {
             ValKeyword | VarKeyword => self.parse_declaration_expression(),
             IdentifierToken if self.peek(1).token_type == EqualsToken => self.parse_assignment_expression(),
             IfKeyword => self.parse_if_expression(),
+            WhileKeyword => self.parse_while_expression(),
+            LoopKeyword => self.parse_loop_expression(),
             _ => self.parse_single_expr_or_block(0),
         }
+    }
+
+    fn parse_loop_expression(&self) -> Expression {
+        let loop_token = self.move_next();
+        let body = self.parse_block();
+        LoopExpression { loop_token, body: Box::new(body) }
     }
 
     fn parse_block(&self) -> Expression {
@@ -85,6 +96,26 @@ impl Parser {
             right_b: rb,
         }
     }
+
+    fn parse_while_expression(&self) -> Expression {
+        let while_token = self.move_next();
+        let condition_expr = self.parse_single_expr_or_block(0);
+        let body_expr = self.parse_if_expr_or_block();
+        Expression::WhileExpression {
+            while_token,
+            condition: Box::new(condition_expr),
+            body: Box::new(body_expr),
+        }
+    }
+
+    fn parse_if_expr_or_block(&self) -> Expression {
+        if self.current().token_type == LeftBraceToken {
+            self.parse_block()
+        } else {
+            self.parse_if_expression()
+        }
+    }
+
 
     fn parse_if_expression(&self) -> Expression {
         let if_token = self.match_token(|t| t.token_type == IfKeyword, vec![IfKeyword]);
@@ -112,15 +143,6 @@ impl Parser {
         }
     }
 
-    fn parse_if_expr_or_block(&self) -> Expression {
-        if self.current().token_type == LeftBraceToken {
-            self.parse_block()
-        } else {
-            self.parse_if_expression()
-        }
-    }
-
-
     fn parse_assignment_expression(&self) -> Expression {
         let identifier_token = self.move_next();
         let equals_token = self.match_token(|t| t.token_type == EqualsToken, vec![EqualsToken]);
@@ -135,6 +157,7 @@ impl Parser {
             _ => self.parse_operator_expression(priority),
         }
     }
+
 
     fn parse_operator_expression(&self, parent_priority: i32) -> Expression {
         let mut left;
@@ -158,7 +181,6 @@ impl Parser {
         }
         left
     }
-
 
     fn parse_declaration_expression(&self) -> Expression {
         let declaration_token = self.move_next();
@@ -188,19 +210,8 @@ impl Parser {
 
     fn parse_literal_expression(&self) -> Expression {
         match self.current().token_type {
-            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => {
-                let res = LiteralExpression {
-                    literal_token: self.move_next()
-                };
-
-                res
-            }
-            IdentifierToken => {
-                let res = IdentifierExpression {
-                    identifier_token: self.move_next()
-                };
-                res
-            }
+            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => LiteralExpression { literal_token: self.move_next() },
+            IdentifierToken => IdentifierExpression { identifier_token: self.move_next() },
             LeftParenthesisToken => {
                 let left_p = self.move_next();
                 let expr = self.parse_expression_with_semicolon_checking();
@@ -215,6 +226,7 @@ impl Parser {
                     right_p,
                 }
             }
+            BreakKeyword => BreakExpression { break_token: self.move_next() },
             _ => {
                 self.diagnostics.report_unexpected_token(self.tokens_in_the_same_line(self.current()), self.current().clone(), &vec![IntegerToken, FloatPointToken, TrueKeyword, FalseKeyword, IdentifierToken, LeftParenthesisToken]);
                 LiteralExpression { literal_token: self.move_next() }
@@ -242,7 +254,6 @@ impl Parser {
             Token::new(expected[0], current.text, current.line_num, current.column_num)
         }
     }
-
     fn peek(&self, offset: usize) -> Token {
         let pos = self.pos();
 
@@ -252,11 +263,11 @@ impl Parser {
             self.tokens[pos + offset].clone()
         }
     }
+
+
     fn current(&self) -> Token {
         self.peek(0)
     }
-
-
     fn pos(&self) -> usize {
         self.pos.borrow().clone()
     }
