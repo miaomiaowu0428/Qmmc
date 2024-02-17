@@ -73,8 +73,7 @@ impl Evaluator {
                 Ok(self.evaluate_binary_expression(*left, operator_token, *right))
             }
             BracketedExpression { block, .. } => {
-                let child_scope = RuntimeScope::with_parent(Some(self.scope.clone()));
-                let child_evaluator = Evaluator::with_scope(child_scope);
+                let child_evaluator = self.new_child();
                 let res = child_evaluator.evaluate_block(block);
                 self.diagnostics.append(child_evaluator.diagnostics);
                 res
@@ -82,11 +81,11 @@ impl Evaluator {
             ParenthesizedExpression { expression, .. } => {
                 self.evaluate_expression(*expression)
             }
-            IfExpression { if_token, condition, true_expr, else_token, false_expr: false_expe } => {
+            IfExpression { if_token, condition, true_expr, else_token, false_expr } => {
                 let condition = self.evaluate_expression(*condition)?;
                 if condition == bool(true) {
                     self.evaluate_expression(*true_expr)
-                } else if let Some(false_expr) = false_expe {
+                } else if let Some(false_expr) = false_expr {
                     self.evaluate_expression(*false_expr)
                 } else {
                     Ok(Value::None)
@@ -100,7 +99,8 @@ impl Evaluator {
             }
             LoopExpression { body, .. } => {
                 while let BracketedExpression { ref block, .. } = *body {
-                    if self.evaluate_block(block.clone()) == Err(Break) {
+                    let child_evaluator = self.new_child();
+                    if child_evaluator.evaluate_block(block.clone()) == Err(Break) {
                         break
                     }
                 }
@@ -121,8 +121,9 @@ impl Evaluator {
     }
 
     fn evaluate_while_expression(&self, condition: Expression, block: Block) {
+        let child_evaluator = self.new_child();
         while self.evaluate_expression(condition.clone()) == Ok(bool(true)) {
-            if self.evaluate_block(block.clone()) == Err(Break) {
+            if child_evaluator.evaluate_block(block.clone()) == Err(Break) {
                 break;
             }
         }
@@ -254,5 +255,9 @@ impl Evaluator {
                 Value::None
             }
         }
+    }
+
+    fn new_child(&self) -> Self {
+        Self::with_scope(RuntimeScope::with_parent(Some(self.scope.clone())))
     }
 }

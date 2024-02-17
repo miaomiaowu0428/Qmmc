@@ -8,6 +8,7 @@ use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PrecentToken, WhileKe
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
+use TokenType::BreakKeyword;
 use TokenType::ElseKeyword;
 use TokenType::EndLineToken;
 use TokenType::EndOfFileToken;
@@ -20,6 +21,7 @@ use TokenType::IfKeyword;
 use TokenType::IntegerToken;
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
+use TokenType::LoopKeyword;
 use TokenType::MinusToken;
 use TokenType::OrKeyword;
 use TokenType::PlusToken;
@@ -32,8 +34,6 @@ use TokenType::TrueKeyword;
 use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhitespaceToken;
-use TokenType::BreakKeyword;
-use TokenType::LoopKeyword;
 
 #[derive(Clone)]
 pub struct Token {
@@ -91,7 +91,7 @@ impl Display for Token {
                match self.token_type {
                    IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => format!("{}", self.text.green()),
                    IdentifierToken => format!("{}", self.text.bold()),
-                   ValKeyword | VarKeyword| IfKeyword| ElseKeyword => format!("{}", self.text.bold().yellow()),
+                   ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword | BreakKeyword => format!("{}", self.text.bold().yellow()),
 
                    _ => format!("{}", self.text),
                })
@@ -153,7 +153,6 @@ impl TokenType {
 
     pub fn get_binary_priority(&self) -> i32 {
         match self {
-
             StarToken => 7,
             SlashToken => 7,
             PlusToken => 6,
