@@ -22,7 +22,6 @@ impl PartialEq for Value {
             _ => false,
         }
     }
-
 }
 
 impl Display for Value {

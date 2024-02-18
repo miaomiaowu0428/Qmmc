@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use colored::Colorize;
 
@@ -8,11 +9,17 @@ use TokenType::{FloatPointToken, IntegerToken};
 
 use crate::analyze::lex::token::{Token, TokenType};
 use crate::analyze::syntax_tree::Expression;
-use crate::evaluate::Type;
+use crate::evaluate::{Function, Type};
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
+}
+
+impl DiagnosticBag {
+    pub(crate) fn clear(&self) {
+        self.diagnostics.borrow_mut().clear();
+    }
 }
 
 
@@ -29,6 +36,11 @@ impl DiagnosticBag {
 
     pub(crate) fn report_invalid_literal(&self, token: Token) {
         let message = format!("Invalid literal '{}'", token.text.red());
+        self.report(message);
+    }
+
+    pub(crate) fn report_undefined_function(&self, p0: &str) {
+        let message = format!("Found no function named '{}'", p0.red());
         self.report(message);
     }
 
@@ -114,6 +126,16 @@ impl DiagnosticBag {
                           op_token.text.red(),
                           operand_type.to_string().bright_yellow());
         self.report(msg);
+    }
+
+
+    pub(crate) fn report_continue_function_call(&self, name: &String, fun: Rc<Function>) {
+        let message = format!("cannot use continue in function {{ {name} }},which is declared by:\n {fun}");
+        self.report(message);
+    }
+    pub(crate) fn report_break_function_call(&self, name: &String, fun: Rc<Function>) {
+        let message = format!("cannot use break in function {{ {name} }},which is declared by:\n {fun}");
+        self.report(message);
     }
 }
 

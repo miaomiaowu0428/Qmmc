@@ -1,0 +1,44 @@
+fun first_shui_xian_hua_since(n) {
+    loop {
+        n = n + 1
+        var temp = n
+        var sum = 0
+        var digits = 0
+        while temp > 0 {
+            temp = temp / 10
+            digits = digits + 1
+        }
+        temp = n
+        while temp > 0 {
+            var digit = temp % 10
+            var power = 1
+            var i = 0
+            while i < digits {
+                power = power * digit
+                i = i + 1
+            }
+            sum = sum + power
+            temp = temp / 10
+        }
+        if sum == n {
+            break
+        }
+    }
+    n
+}
+
+fun add(a , b) {
+    a + b
+}
+
+
+val first = first_shui_xian_hua_since(100)
+val second = first_shui_xian_hua_since(first)
+val third = first_shui_xian_hua_since(second)
+val forth = first_shui_xian_hua_since(third)
+
+
+first
+second
+third
+forth

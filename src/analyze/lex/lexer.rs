@@ -1,19 +1,13 @@
 use std::cell::RefCell;
 
-use crate::analyze::lex::token::TokenType;
-use crate::analyze::lex::token::Token;
-
-use TokenType::{BreakKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PrecentToken};
-use TokenType::EndOfFileToken;
-use TokenType::ElseKeyword;
-use TokenType::SemicolonToken;
-use TokenType::ValKeyword;
-use TokenType::VarKeyword;
-use TokenType::WhileKeyword;
+use TokenType::{BreakKeyword, ContinueToken, FunKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PercentToken, ReturnKeyword};
 use TokenType::AndKeyword;
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
+use TokenType::ElseKeyword;
+use TokenType::EndOfFileToken;
+use TokenType::EqualsEqualsToken;
 use TokenType::EqualsToken;
 use TokenType::FalseKeyword;
 use TokenType::FloatPointToken;
@@ -26,11 +20,17 @@ use TokenType::OrKeyword;
 use TokenType::PlusToken;
 use TokenType::RightBraceToken;
 use TokenType::RightParenthesisToken;
+use TokenType::SemicolonToken;
 use TokenType::SlashToken;
 use TokenType::StarToken;
 use TokenType::TrueKeyword;
+use TokenType::ValKeyword;
+use TokenType::VarKeyword;
+use TokenType::WhileKeyword;
 use TokenType::WhitespaceToken;
-use TokenType::EqualsEqualsToken;
+
+use crate::analyze::lex::token::Token;
+use crate::analyze::lex::token::TokenType;
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -94,7 +94,7 @@ impl Lexer {
         Token::new(token_type, text, self.line_number(), self.column_number())
     }
     fn lex_keyword_or_identifier(&self) -> Token {
-        let text = self.lex_while(|c| c.is_alphanumeric());
+        let text = self.lex_while(|c| c.is_alphanumeric() || c == '_');
         let token_type = match text.as_str() {
             "and" => AndKeyword,
             "or" => OrKeyword,
@@ -107,6 +107,9 @@ impl Lexer {
             "while" => WhileKeyword,
             "loop" => LoopKeyword,
             "break" => BreakKeyword,
+            "continue" => ContinueToken,
+            "fun" => FunKeyword,
+            "return" => ReturnKeyword,
             _ => IdentifierToken,
         };
         Token::new(token_type, text, self.line_number(), self.column_number())
@@ -177,7 +180,11 @@ impl Lexer {
             }
             '%' => {
                 let c = self.move_next();
-                Token::new(PrecentToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(PercentToken, c.to_string(), self.line_number(), self.column_number())
+            }
+            ',' => {
+                let c = self.move_next();
+                Token::new(TokenType::CommaToken, c.to_string(), self.line_number(), self.column_number())
             }
             c => {
                 self.move_next();

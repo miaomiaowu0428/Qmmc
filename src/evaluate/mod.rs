@@ -11,5 +11,8 @@ mod runtime_scope;
 mod variable;
 mod test;
 mod control_command;
+mod function;
+
+pub use function::Function;
 
 

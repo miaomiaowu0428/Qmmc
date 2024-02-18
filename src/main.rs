@@ -19,7 +19,7 @@ static PATH: &str = "G:/codefile/rust_source_file/Qmmc/resource/";
 
 fn main() {
     let mut file =
-        File::open(Path::new(&format!("{}{}", PATH, "shui_xian_hua_shu.qmm"))).expect("Could not open file");
+        File::open(Path::new(&format!("{}{}", PATH, "test_return.qmm"))).expect("Could not open file");
     let mut contents = String::new();
     file.read_to_string(&mut contents)
         .expect("Could not read file");
@@ -68,20 +68,20 @@ fn main() {
 
     let mut i = 1;
     for (expr, res) in expr_and_res {
-        println!("------------------\nExpr: {i}{:>8}|-> {:?}","", res);
+        println!("------------------\nExpr: {i}{:>8}|-> {:?}\n{}", "", res, expr);
         i += 1;
-        expr.print_as_line(0);
         println!()
     }
 
 
     // print_res(res);
 
-    print_scope_variables(&evaluator.scope);
+    print_scope(&evaluator.scope);
 }
 
-fn print_scope_variables(scope: &RuntimeScope) {
-    println!("==============================\nVariables:\n{:?}", scope);
+fn print_scope(scope: &RuntimeScope) {
+    println!("==============================\nVariables:\n{}", scope.variables_to_string());
+    println!("------------------------------\nFunctions:\n{}", scope.functions_to_string());
     println!("==============================");
 }
 

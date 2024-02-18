@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::analyze::lex::Token;
 use crate::analyze::syntax_tree::Expression;
@@ -8,6 +8,14 @@ use crate::evaluate::Type;
 #[derive(Debug, Clone)]
 pub struct Block {
     pub(crate) expressions: RefCell<Vec<Expression>>,
+}
+
+impl Display for Block {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(for expr in self.expressions.borrow().iter() {
+            write!(f, "{}", expr)?;
+        })
+    }
 }
 
 
@@ -29,11 +37,11 @@ impl Block {
         self.expressions.borrow_mut().push(expression);
     }
 
-    pub fn print_as_line(&self, indent: i32) {
-        for expr in self.expressions.borrow().iter() {
-            expr.print_as_line(indent + 1);
-            println!()
-        }
+    pub fn format_with_indent(&self, f: &mut std::fmt::Formatter<'_>, indent: i32) -> std::fmt::Result {
+        Ok(for expr in self.expressions.borrow().iter() {
+            expr.format_with_indent(f, indent + 1)?;
+            writeln!(f)?;
+        })
     }
 
     pub fn to_token_vec(&self) -> Vec<Token> {

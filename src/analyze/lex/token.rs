@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PrecentToken, WhileKeyword};
+use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKeyword};
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
@@ -34,6 +34,8 @@ use TokenType::TrueKeyword;
 use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhitespaceToken;
+
+use crate::analyze::lex::TokenType::{CommaToken, ContinueToken, FunKeyword, ReturnKeyword};
 
 #[derive(Clone)]
 pub struct Token {
@@ -91,7 +93,7 @@ impl Display for Token {
                match self.token_type {
                    IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => format!("{}", self.text.green()),
                    IdentifierToken => format!("{}", self.text.bold()),
-                   ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword | BreakKeyword => format!("{}", self.text.bold().yellow()),
+                   ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword | BreakKeyword | FunKeyword | ReturnKeyword => format!("{}", self.text.bold().yellow()),
 
                    _ => format!("{}", self.text),
                })
@@ -138,7 +140,11 @@ pub enum TokenType {
     WhileKeyword,
     LoopKeyword,
     BreakKeyword,
-    PrecentToken,
+    PercentToken,
+    FunKeyword,
+    CommaToken,
+    ReturnKeyword,
+    ContinueToken,
 }
 
 impl TokenType {
@@ -157,7 +163,7 @@ impl TokenType {
             SlashToken => 7,
             PlusToken => 6,
             MinusToken => 6,
-            PrecentToken => 5,
+            PercentToken => 5,
             LessThanToken => 3,
             GreatThanToken => 3,
             EqualsEqualsToken => 3,
@@ -206,6 +212,10 @@ impl Debug for TokenType {
             LessThanToken => "LessThanToken",
             GreatThanToken => "GreatThanToken",
             PercentToken => "PercentTToken",
+            FunKeyword => "FunKeyword",
+            CommaToken => "CommaToken",
+            ReturnKeyword => "ReturnKeyword",
+            ContinueToken => "ContinueToken",
         };
         write!(f, "{}", string)
     }

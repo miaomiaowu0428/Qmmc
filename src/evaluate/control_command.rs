@@ -1,7 +1,7 @@
 use crate::evaluate::Value;
 
-#[derive(Debug, PartialEq)]
-pub enum  ControlCommand {
+#[derive(Debug, PartialEq, Clone)]
+pub enum ControlCommand {
     Break,
     Continue,
     Return(Value),

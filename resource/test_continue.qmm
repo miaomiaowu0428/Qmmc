@@ -1,0 +1,15 @@
+var n = 0
+loop {
+    if (n == 9) {
+        break
+    } else {
+        n = n + 3
+        continue
+    }
+    if n > 8 {
+        break
+    }
+
+    n = n + 1
+}
+n
