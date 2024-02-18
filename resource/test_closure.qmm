@@ -1,11 +1,11 @@
-fun get_add_114514() {
-    val a = 114514
-    fun add(b) {
-        a+b
+fun get_add_num(right) {
+    val res = fun _ (left) {
+        left + right
     }
+    res
 }
 
-val add_114514 = get_add_114514()
+val add_114514 = get_add_num(114514)
 
 val res = add_114514(1919810)
 

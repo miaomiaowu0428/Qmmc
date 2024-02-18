@@ -319,7 +319,7 @@ impl Expression {
                 write!(f, "(", )?;
                 write!(f, "{}", parameters.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", "))?;
                 write!(f, ") ", )?;
-                body.format_inline(f, indent - 1)
+                body.format_inline(f, indent)
             }
             ReturnExpression { return_token, expression, } => {
                 write!(f, "{}{} ", indent_str, return_token)?;
@@ -398,11 +398,11 @@ impl Expression {
             BreakExpression { break_token, } => write!(f, "{}{}", indent_str, break_token),
             ContinueExpression { continue_token, } => write!(f, "{}{}", indent_str, continue_token),
             FunctionDeclarationExpression { fun_token, identifier_token, parameters, body, .. } => {
-                write!(f, "{}{} {} ", indent_str, fun_token, identifier_token)?;
+                write!(f, "{} {} ", fun_token, identifier_token)?;
                 write!(f, "(", )?;
                 write!(f, "{}", parameters.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", "))?;
                 write!(f, ") ", )?;
-                body.format_inline(f, indent - 1)
+                body.format_inline(f, indent)
             }
             ReturnExpression { return_token, expression, } => {
                 write!(f, "{}{} ", indent_str, return_token)?;

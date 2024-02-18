@@ -85,7 +85,6 @@ fn main() {
 
 fn print_scope(scope: &RuntimeScope) {
     println!("==============================\nVariables:\n{}", scope.variables_to_string());
-    // println!("------------------------------\nFunctions:\n{}", scope.functions_to_string());
     println!("==============================");
 }
 

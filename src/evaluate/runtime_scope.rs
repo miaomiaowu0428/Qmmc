@@ -68,7 +68,7 @@ impl RuntimeScope {
         }
     }
 
-    pub fn declare_function(&self, name: &str, function:Function) {
+    pub fn declare_function(&self, name: &str, function: Function) {
         self.values.borrow_mut().insert(name.to_string(), Variable::new_immutable(
             Value::fun { fun: function.clone() },
             function.declared_expression.clone()
@@ -98,7 +98,13 @@ impl RuntimeScope {
         let values = self.values.borrow();
         for (name, variable) in values.iter() {
             let chinese_count = name.chars().filter(|c| !c.is_ascii()).count();
-            let name = if variable.mutable { name.purple().to_string() } else { name.green().to_string() };
+            let name = if let Value::fun { .. } = variable.value {
+                name.blue().to_string()
+            } else if variable.mutable {
+                name.purple().to_string()
+            } else {
+                name.green().to_string()
+            };
             let width = 20 - chinese_count;
             result.push_str(&format!("{:^width$}: {}\n", name, variable.value));
         }

@@ -63,7 +63,7 @@ impl Lexer {
         while let Some(c) = self.current() {
             let token = if c.is_ascii_digit() {
                 self.lex_number()
-            } else if c.is_alphabetic() {
+            } else if c.is_alphabetic() || *c == '_' {
                 self.lex_keyword_or_identifier()
             } else if c.is_whitespace() {
                 let white_space = self.lex_white_spase();
