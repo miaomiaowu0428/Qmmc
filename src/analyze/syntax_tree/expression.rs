@@ -135,7 +135,6 @@ impl Expression {
             FunctionDeclarationExpression { .. } => Unknown,
             FunctionCallExpression { .. } => Unknown,
             ReturnExpression { expression, .. } => expression.r#type(),
-
         }
     }
 
@@ -319,8 +318,8 @@ impl Expression {
                 write!(f, "{}{} {} ", indent_str, fun_token, identifier_token)?;
                 write!(f, "(", )?;
                 write!(f, "{}", parameters.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", "))?;
-                write!(f, ")", )?;
-                body.format_inline(f, indent)
+                write!(f, ") ", )?;
+                body.format_inline(f, indent - 1)
             }
             ReturnExpression { return_token, expression, } => {
                 write!(f, "{}{} ", indent_str, return_token)?;
@@ -402,8 +401,8 @@ impl Expression {
                 write!(f, "{}{} {} ", indent_str, fun_token, identifier_token)?;
                 write!(f, "(", )?;
                 write!(f, "{}", parameters.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", "))?;
-                write!(f, ")", )?;
-                body.format_inline(f, indent)
+                write!(f, ") ", )?;
+                body.format_inline(f, indent - 1)
             }
             ReturnExpression { return_token, expression, } => {
                 write!(f, "{}{} ", indent_str, return_token)?;
