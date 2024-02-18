@@ -8,15 +8,15 @@ use colored::Colorize;
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::evaluate::function::Function;
+use crate::evaluate::Value;
 use crate::evaluate::variable::Variable;
 
 pub type VariableMap = HashMap<String, Variable>;
-pub type FunctionMap = HashMap<String, Rc<Function>>;
 
+#[derive(Debug)]
 pub struct RuntimeScope {
     pub parent: Option<Rc<RuntimeScope>>,
     pub values: RefCell<VariableMap>,
-    pub functions: RefCell<FunctionMap>,
     pub(crate) diagnostics: DiagnosticBag,
 }
 
@@ -26,7 +26,6 @@ impl RuntimeScope {
         Self {
             parent: None,
             values: RefCell::new(HashMap::new()),
-            functions: RefCell::new(HashMap::new()),
             diagnostics: DiagnosticBag::new(),
         }
     }
@@ -34,7 +33,6 @@ impl RuntimeScope {
         Self {
             parent,
             values: RefCell::new(HashMap::new()),
-            functions: RefCell::new(HashMap::new()),
             diagnostics: DiagnosticBag::new(),
         }
     }
@@ -70,17 +68,19 @@ impl RuntimeScope {
         }
     }
 
-    pub fn declare_function(&self, name: &str, function: Rc<Function>) {
-        let mut functions = self.functions.borrow_mut();
-        functions.insert(name.to_string(), function);
+    pub fn declare_function(&self, name: &str, function:Function) {
+        self.values.borrow_mut().insert(name.to_string(), Variable::new_immutable(
+            Value::fun { fun: function.clone() },
+            function.declared_expression.clone()
+        ));
     }
 
-    fn get_local_function(&self, name: &str) -> Option<Rc<Function>> {
-        let functions = self.functions.borrow();
+    fn get_local_function(&self, name: &str) -> Option<Variable> {
+        let functions = self.values.borrow();
         functions.get(name).cloned()
     }
 
-    pub fn get_global_function(&self, name: &str) -> Option<Rc<Function>> {
+    pub fn get_global_function(&self, name: &str) -> Option<Variable> {
         if let Some(f) = self.get_local_function(name) {
             Some(f)
         } else {
@@ -99,18 +99,8 @@ impl RuntimeScope {
         for (name, variable) in values.iter() {
             let chinese_count = name.chars().filter(|c| !c.is_ascii()).count();
             let name = if variable.mutable { name.purple().to_string() } else { name.green().to_string() };
-            let width = 16 - chinese_count;
-            result.push_str(&format!("{:^width$}: {:?}\n", name, variable.value));
-        }
-        result
-    }
-
-
-    pub fn functions_to_string(&self) -> String {
-        let mut result = String::new();
-        let functions = self.functions.borrow();
-        for (name, function) in functions.iter() {
-            result.push_str(&format!("{}: {}\n", name, function));
+            let width = 20 - chinese_count;
+            result.push_str(&format!("{:^width$}: {}\n", name, variable.value));
         }
         result
     }

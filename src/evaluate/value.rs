@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
+use crate::evaluate::Function;
 use crate::evaluate::r#type::Type;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Value {
     None,
+    fun { fun: Function },
     i32(i32),
     bool(bool),
     f32(f32),
@@ -28,6 +30,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::None => write!(f, "None"),
+            Value::fun { fun } => write!(f, "{}", fun),
             Value::i32(i) => write!(f, "{}", i),
             Value::bool(b) => write!(f, "{}", b),
             Value::f32(fl) => write!(f, "{}", fl),
@@ -40,6 +43,7 @@ impl Value {
     pub fn r#type(&self) -> Type {
         match self {
             Value::None => Type::None,
+            Value::fun { .. } => Type::Unknown,
             Value::i32(_) => Type::I32,
             Value::bool(_) => Type::Bool,
             Value::f32(_) => Type::F32,
@@ -62,6 +66,13 @@ impl Value {
         match self {
             Value::bool(b) => *b,
             _ => panic!("Value is not a bool"),
+        }
+    }
+
+    pub(crate) fn as_fun(&self) -> Function {
+        match self {
+            Value::fun { fun } => fun.clone(),
+            _ => panic!("Value is not a function"),
         }
     }
 }

@@ -16,6 +16,7 @@ use crate::evaluate::function::Function;
 use crate::evaluate::r#type::Type::{F32, I32};
 use crate::evaluate::runtime_scope::RuntimeScope;
 use crate::evaluate::Type::Bool;
+use crate::evaluate::Value::fun;
 use crate::evaluate::value::Value;
 use crate::evaluate::variable::Variable;
 
@@ -32,9 +33,9 @@ impl Evaluator {
         }
     }
 
-    pub fn with_scope(scope: RuntimeScope) -> Self {
+    pub fn with_scope(scope: Rc<RuntimeScope>) -> Self {
         Self {
-            scope: Rc::from(RuntimeScope::with_parent(Some(Rc::from(scope)))),
+            scope: Rc::from(RuntimeScope::with_parent(Some(scope))),
             diagnostics: DiagnosticBag::new(),
         }
     }
@@ -125,9 +126,10 @@ impl Evaluator {
                 ref parameters,
                 ref body, ..
             } => {
-                let fun = Function::new(parameters.iter().map(|p| p.text.clone()).collect(), *body.clone(), expression.clone());
-                self.scope.declare_function(&identifier_token.text, Rc::new(fun));
-                Ok(Value::None)
+                let parent_scope = self.scope.clone();
+                let fun = Function::new(parent_scope,parameters.iter().map(|p| p.text.clone()).collect(), *body.clone(), expression.clone());
+                self.scope.declare_function(&identifier_token.text, fun.clone());
+                Ok(Value::fun { fun })
             }
             ReturnExpression { expression, .. } => {
                 let value = self.evaluate_expression(*expression)?;
@@ -135,24 +137,24 @@ impl Evaluator {
             }
             FunctionCallExpression { ref identifier_token, ref arguments, .. } => {
                 let fun = self.scope.get_global_function(&identifier_token.text);
-                if let Some(fun) = fun {
-                    let child_evaluator = self.new_child();
+                if let Some(Variable { value: fun { fun }, .. }) = fun {
+                    let child_evaluator = Evaluator::with_scope(fun.parent_scope.clone());
                     for i in 0..fun.parameters.len() {
                         let arg_expr = arguments.get(i).unwrap();
                         let variable_name = fun.parameters.get(i).unwrap();
                         let arg_value = child_evaluator.evaluate_expression(arg_expr.clone())?;
                         child_evaluator.scope.set_local_variable(variable_name, Variable::new_mutable(arg_value, expression.clone()))
                     }
-                    // println!("{}", child_evaluator.scope.variables_to_string());
+
                     let res = match child_evaluator.evaluate_expression(fun.body.clone()) {
                         Ok(res) => Ok(res),
                         Err(Return(value)) => Ok(value),
                         Err(Break) => {
-                            self.diagnostics.report_break_function_call(&identifier_token.text,fun);
+                            self.diagnostics.report_break_function_call(&identifier_token.text, Rc::from(fun));
                             Ok(Value::None)
                         }
-                        Err(Continue)=> {
-                            self.diagnostics.report_continue_function_call(&identifier_token.text,fun);
+                        Err(Continue) => {
+                            self.diagnostics.report_continue_function_call(&identifier_token.text, Rc::from(fun));
                             Ok(Value::None)
                         }
                     };
@@ -312,6 +314,6 @@ impl Evaluator {
     }
 
     fn new_child(&self) -> Self {
-        Self::with_scope(RuntimeScope::with_parent(Some(self.scope.clone())))
+        Self::with_scope(Rc::from(RuntimeScope::with_parent(Some(self.scope.clone()))))
     }
 }
