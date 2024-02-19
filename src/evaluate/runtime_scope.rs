@@ -75,23 +75,6 @@ impl RuntimeScope {
         ));
     }
 
-    fn get_local_function(&self, name: &str) -> Option<Variable> {
-        let functions = self.values.borrow();
-        functions.get(name).cloned()
-    }
-
-    pub fn get_global_function(&self, name: &str) -> Option<Variable> {
-        if let Some(f) = self.get_local_function(name) {
-            Some(f)
-        } else {
-            if let Some(parent) = &self.parent {
-                parent.get_global_function(name)
-            } else {
-                None
-            }
-        }
-    }
-
 
     pub fn variables_to_string(&self) -> String {
         let mut result = String::new();
@@ -106,7 +89,7 @@ impl RuntimeScope {
                 name.green().to_string()
             };
             let width = 20 - chinese_count;
-            result.push_str(&format!("{:^width$}: {}\n", name, variable.value));
+            result.push_str(&format!("{:<width$}: {}\n", name, variable.value));
         }
         result
     }

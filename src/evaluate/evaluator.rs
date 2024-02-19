@@ -136,7 +136,7 @@ impl Evaluator {
                 Err(ControlCommand::Return(value))
             }
             FunctionCallExpression { ref identifier_token, ref arguments, .. } => {
-                let fun = self.scope.get_global_function(&identifier_token.text);
+                let fun = self.scope.get_global_variable(&identifier_token.text);
                 if let Some(Variable { value: fun { fun }, .. }) = fun {
                     let child_evaluator = Evaluator::with_scope(fun.parent_scope.clone());
                     for i in 0..fun.parameters.len() {
