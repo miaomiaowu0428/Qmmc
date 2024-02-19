@@ -8,13 +8,14 @@ use Value::bool;
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::{Token, TokenType};
 use crate::analyze::lex::TokenType::{BangEqualsToken, FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
-use crate::analyze::syntax_tree::{Block, Expression};
+use crate::analyze::syntax_tree::{Block, Expression, NameTypePair};
 use crate::analyze::syntax_tree::Expression::ContinueExpression;
 use crate::evaluate::control_command::ControlCommand;
 use crate::evaluate::control_command::ControlCommand::Return;
 use crate::evaluate::function::Function;
 use crate::evaluate::r#type::Type::{F32, I32};
 use crate::evaluate::runtime_scope::RuntimeScope;
+use crate::evaluate::Type;
 use crate::evaluate::Type::Bool;
 use crate::evaluate::Value::fun;
 use crate::evaluate::value::Value;
@@ -64,35 +65,18 @@ impl Evaluator {
                 self.evaluate_expression(*expression)?;
                 Ok(Value::None)
             }
-            LiteralExpression { literal_token } => {
-                Ok(self.build_literal_value(literal_token))
-            }
-            IdentifierExpression { identifier_token } => {
-                Ok(self.evaluate_identifier(identifier_token))
-            }
-            DeclarationExpression { .. } => {
-                Ok(self.evaluate_declaration(expression))
-            }
-            AssignmentExpression {
-                identifier_token,
-                expression, ..
-            } => {
-                Ok(self.evaluate_assignment(identifier_token, *expression))
-            }
-            UnaryExpression { operator_token, operand } => {
-                Ok(self.evaluate_unary_expression(operator_token, *operand))
-            }
-            BinaryExpression { left, operator_token, right } => {
-                Ok(self.evaluate_binary_expression(*left, operator_token, *right))
-            }
+            LiteralExpression { literal_token } => Ok(self.build_literal_value(literal_token)),
+            IdentifierExpression { identifier_token } => Ok(self.evaluate_identifier(identifier_token)),
+            DeclarationExpression { .. } => Ok(self.evaluate_declaration(expression)),
+            AssignmentExpression { identifier_token, expression, .. } => Ok(self.evaluate_assignment(identifier_token, *expression)),
+            UnaryExpression { operator_token, operand } => Ok(self.evaluate_unary_expression(operator_token, *operand)),
+            BinaryExpression { left, operator_token, right } => Ok(self.evaluate_binary_expression(*left, operator_token, *right)),
+            ParenthesizedExpression { expression, .. } => self.evaluate_expression(*expression),
             BracketedExpression { block, .. } => {
                 let child_evaluator = self.new_child();
                 let res = child_evaluator.evaluate_block(block);
                 self.diagnostics.append(child_evaluator.diagnostics);
                 res
-            }
-            ParenthesizedExpression { expression, .. } => {
-                self.evaluate_expression(*expression)
             }
             IfExpression { if_token, condition, true_expr, else_token, false_expr } => {
                 let condition = self.evaluate_expression(*condition)?;
@@ -121,31 +105,54 @@ impl Evaluator {
             }
             BreakExpression { .. } => Err(Break),
             ContinueExpression { .. } => Err(Continue),
-            FunctionDeclarationExpression {
-                ref identifier_token,
-                ref parameters,
-                ref body, ..
-            } => {
+            FunctionDeclarationExpression { ref identifier_token, ref parameters, ref body, .. } => {
                 let parent_scope = self.scope.clone();
-                let fun = Function::new(parent_scope,parameters.iter().map(|p| p.text.clone()).collect(), *body.clone(), expression.clone());
+                let fun = Function::new(parent_scope, parameters.clone(), *body.clone(), expression.clone());
                 self.scope.declare_function(&identifier_token.text, fun.clone());
                 Ok(Value::fun { fun })
             }
             ReturnExpression { expression, .. } => {
                 let value = self.evaluate_expression(*expression)?;
-                Err(ControlCommand::Return(value))
+                Err(Return(value))
             }
             FunctionCallExpression { ref identifier_token, ref arguments, .. } => {
-                let fun = self.scope.get_global_variable(&identifier_token.text);
-                if let Some(Variable { value: fun { fun }, .. }) = fun {
-                    let child_evaluator = Evaluator::with_scope(fun.parent_scope.clone());
-                    for i in 0..fun.parameters.len() {
-                        let arg_expr = arguments.get(i).unwrap();
-                        let variable_name = fun.parameters.get(i).unwrap();
-                        let arg_value = child_evaluator.evaluate_expression(arg_expr.clone())?;
-                        child_evaluator.scope.set_local_variable(variable_name, Variable::new_mutable(arg_value, expression.clone()))
-                    }
+                self.evaluate_function_call(identifier_token.clone(), arguments.clone(), &expression)
+            }
+        }
+    }
 
+
+    fn evaluate_function_call(&self, identifier_token: Token, arguments: Vec<Expression>, expression: &Expression) -> Result<Value, ControlCommand> {
+        let fun = self.scope.get_global(&identifier_token.text);
+        if let Some(Variable { value: fun { fun }, .. }) = fun {
+            // check if the number of arguments matches the number of parameters
+            if fun.parameters.len() != arguments.len() {
+                self.diagnostics.report_argument_count_mismatch(&identifier_token.text, fun.parameters.len(), arguments.len());
+                // cancel the function call
+                Ok(Value::None)
+            } else {
+                // use the parent scope of the function to create a new child evaluator
+                let child_evaluator = Evaluator::with_scope(fun.parent_scope.clone());
+
+                // initialize the parameters
+                for i in 0..fun.parameters.len() {
+                    let arg_expr = &arguments[i];
+                    let NameTypePair { name: variable_name_token, r#type: type_name_token, .. } = &fun.parameters[i];
+                    let (variable_name, type_name) = (&variable_name_token.text, &type_name_token.text);
+                    let (r#type, arg_value) = (Type::from(type_name), child_evaluator.evaluate_expression(arg_expr.clone())?);
+
+                    if arg_value.r#type() == r#type {
+                        child_evaluator.scope.set_local(variable_name, Variable::init_as_mutable(arg_value, expression.clone()));
+                    } else {
+                        self.diagnostics.report_argument_type_mismatch(&identifier_token.text, variable_name, r#type, arg_value.r#type());
+                    }
+                }
+
+                if !self.diagnostics.is_empty() {
+                    // cancel the function call
+                    Ok(Value::None)
+                } else {
+                    // run function body
                     let res = match child_evaluator.evaluate_expression(fun.body.clone()) {
                         Ok(res) => Ok(res),
                         Err(Return(value)) => Ok(value),
@@ -160,11 +167,11 @@ impl Evaluator {
                     };
                     self.diagnostics.append(child_evaluator.diagnostics);
                     res
-                } else {
-                    self.diagnostics.report_undefined_function(&identifier_token.text);
-                    Ok(Value::None)
                 }
             }
+        } else {
+            self.diagnostics.report_undefined_function(&identifier_token.text);
+            Ok(Value::None)
         }
     }
 
@@ -186,7 +193,7 @@ impl Evaluator {
     }
 
     pub fn evaluate_identifier(&self, identifier_token: Token) -> Value {
-        if let Some(variable) = self.scope.get_global_variable(&identifier_token.text) {
+        if let Some(variable) = self.scope.get_global(&identifier_token.text) {
             variable.value
         } else {
             self.diagnostics.report_undefined_variable(&identifier_token.text);
@@ -196,10 +203,22 @@ impl Evaluator {
 
     pub fn evaluate_declaration(&self, declaration_expression: Expression) -> Value {
         if let DeclarationExpression { declaration_token, identifier_token, expression, .. } = declaration_expression.clone() {
-            let value = self.evaluate_expression(*expression.clone()).unwrap();
             let mutable = declaration_token.token_type == VarKeyword;
-            let variable = Variable::new(mutable, value, declaration_expression.clone());
-            self.scope.set_local_variable(&identifier_token.text, variable);
+            let variable = if expression.is_some() {
+                let value = self.evaluate_expression(*expression.unwrap()).unwrap();
+                if mutable {
+                    Variable::init_as_mutable(value, declaration_expression.clone())
+                } else {
+                    Variable::init_as_immutable(value, declaration_expression.clone())
+                }
+            } else {
+                if mutable {
+                    Variable::uninit_mutable(declaration_expression.clone())
+                } else {
+                    Variable::uninit_immutable(declaration_expression.clone())
+                }
+            };
+            self.scope.set_local(&identifier_token.text, variable);
         }
 
         Value::None
@@ -207,12 +226,20 @@ impl Evaluator {
 
     pub fn evaluate_assignment(&self, identifier_token: Token, expression: Expression) -> Value {
         let name = &identifier_token.text;
-        if let Some(v) = self.scope.get_global_variable(name) {
-            if v.mutable {
-                let value = self.evaluate_expression(expression).unwrap();
-                self.scope.set_global_variable(name, Variable::new_mutable(value, v.declared_expression));
-            } else {
-                self.diagnostics.report_immutable_variable(identifier_token.clone(), v.declared_expression.clone());
+        if let Some(v) = self.scope.get_global(name) {
+            match (v.initialized, v.mutable) {
+                (false, true) => { // uninitialized and mutable
+                    self.scope.try_set_global(name, Variable::init_as_mutable(self.evaluate_expression(expression.clone()).unwrap(), expression.clone()));
+                }
+                (true, true) => { // initialized and mutable
+                    self.scope.try_set_global(name, Variable::init_as_mutable(self.evaluate_expression(expression.clone()).unwrap(), expression.clone()));
+                }
+                (false, false) => { // uninitialized and immutable
+                    self.scope.try_set_global(name, Variable::init_as_immutable(self.evaluate_expression(expression.clone()).unwrap(), expression.clone()));
+                }
+                (true, false) => { // initialized and immutable
+                    self.diagnostics.report_immutable_variable(identifier_token, expression.clone());
+                }
             }
         } else { self.diagnostics.report_undefined_variable(&identifier_token.text); }
         Value::None

@@ -16,6 +16,7 @@ pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
 }
 
+
 impl DiagnosticBag {
     pub(crate) fn clear(&self) {
         self.diagnostics.borrow_mut().clear();
@@ -73,6 +74,16 @@ impl DiagnosticBag {
 
     pub fn report_bad_token(&self, token: Token) {
         let message = format!("Bad token '<{}>'", token.to_string().red());
+        self.report(message);
+    }
+
+
+    pub(crate) fn report_argument_type_mismatch(&self, function_name: &str, parameter_name: &str, need: Type, found: Type) {
+        let message = format!("parameter {} in function:{} need type {}, but {} is given", parameter_name.red(), function_name.blue(), need.to_string().green(), found.to_string().red());
+        self.report(message);
+    }
+    pub(crate) fn report_argument_count_mismatch(&self, function_name: &String, need: usize, given: usize) {
+        let message = format!("function {} need {} arguments, but {} is given", function_name.red(), need.to_string().green(), given.to_string().red());
         self.report(message);
     }
 

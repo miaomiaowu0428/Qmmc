@@ -35,7 +35,7 @@ use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhitespaceToken;
 
-use crate::analyze::lex::TokenType::{CommaToken, ContinueToken, FunKeyword, ReturnKeyword};
+use crate::analyze::lex::TokenType::{ColonToken, CommaToken, ContinueToken, FunKeyword, ReturnKeyword};
 
 #[derive(Clone)]
 pub struct Token {
@@ -145,6 +145,7 @@ pub enum TokenType {
     CommaToken,
     ReturnKeyword,
     ContinueToken,
+    ColonToken,
 }
 
 impl TokenType {
@@ -216,6 +217,7 @@ impl Debug for TokenType {
             CommaToken => "CommaToken",
             ReturnKeyword => "ReturnKeyword",
             ContinueToken => "ContinueToken",
+            ColonToken => "ColonToken",
         };
         write!(f, "{}", string)
     }

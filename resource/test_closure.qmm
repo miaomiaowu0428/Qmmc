@@ -1,11 +1,21 @@
-fun get_add_num(right) {
-    fun _ (left) {
+fun get_add_num(right: I32) {
+    fun _ (left: I32) {
         left + right
     }
 }
 
 val add_7 = get_add_num(7)
 
-val res = add_7(8)
+val res
+
+res = add_7(8)
 
 res
+
+
+
+
+
+
+
+

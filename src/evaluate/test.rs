@@ -1,63 +1,80 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Lexer, Parser};
-    use crate::evaluate::Evaluator;
+    use std::fs::File;
+    use std::io::Read;
+    use std::path::Path;
+
+    use crate::{
+        evaluate::Evaluator,
+        Lexer,
+        Parser
+    };
+    use crate::evaluate::Value;
+
+    static PATH: &str = "./resource/";
 
     #[test]
-    fn test_evaluator() {
-        let input = r#"
-                            {
-                                var a = 1_0.4;
-                                val b = 20;
-                                b = 30;
-                                c = 40;
-                                a = 50;
-                                a
-                            }
-
-                            {
-                                val t = true;
-                                val f = false;
-                                t and f
-                            }
-                            "#;
-        let lexer = Lexer::new(input);
+    //从resource下读取文件并解释,匹配结果
+    fn test_function_obj() {
+        let mut file =
+            File::open(Path::new(&format!("{}{}", PATH, "test_function_obj.qmm"))).expect("Could not open file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Could not read file");
+        let lexer = Lexer::new(&contents);
         let source_file = lexer.lex();
         let syntax_tree = Parser::new(source_file);
         let expressions = syntax_tree.parse();
         let evaluator = Evaluator::new();
-        let res = evaluator.evaluate(expressions);
-        assert_eq!(res.len(), 2);
-        assert_eq!(res[0].to_string(), "50");
-        assert_eq!(res[1].to_string(), "false");
+        let res = evaluator.evaluate(expressions.clone());
 
-        assert_eq!(evaluator.diagnostics.is_empty(), false);
-        assert_eq!(evaluator.diagnostics.diagnostics.borrow().len(), 2);
-        // assert_eq!(evaluator.diagnostics.diagnostics.borrow()[0].message, "Assignment to immutable variable '\u{1b}[31mb\u{1b}[0m' because it's declared with 'val'. consider change it to var");
-        assert_eq!(evaluator.diagnostics.diagnostics.borrow()[1].message, "Found no variable named '\u{1b}[31mc\u{1b}[0m'");
+        assert_eq!(res[0], Value::None);
+        assert_eq!(res[1], Value::None);
+        assert_eq!(res[2], Value::i32(2034324));
+    }
+
+    #[test]
+    fn test_function() {
+        let mut file =
+            File::open(Path::new(&format!("{}{}", PATH, "test_function.qmm"))).expect("Could not open file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Could not read file");
+        let lexer = Lexer::new(&contents);
+        let source_file = lexer.lex();
+        let syntax_tree = Parser::new(source_file);
+        let expressions = syntax_tree.parse();
+        let evaluator = Evaluator::new();
+        let res = evaluator.evaluate(expressions.clone());
+
+
+        assert_eq!(res[2], Value::None);
+        assert_eq!(res[3], Value::None);
+        assert_eq!(res[4], Value::None);
+        assert_eq!(res[5], Value::None);
+        assert_eq!(res[6], Value::i32(153));
+        assert_eq!(res[7], Value::i32(370));
+        assert_eq!(res[8], Value::i32(371));
+        assert_eq!(res[9], Value::i32(407));
     }
 
 
     #[test]
-    fn test_scope() {
-        let input = r#"
-                            {
-                                val a = 10;
-                                var b = 20;
-                                b = {
-                                        val c = 30;
-                                        c
-                                    };
-                                b
-                            }
-                            "#;
-        let lexer = Lexer::new(input);
+    fn test_closure() {
+        let mut file =
+            File::open(Path::new(&format!("{}{}", PATH, "test_closure.qmm"))).expect("Could not open file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Could not read file");
+        let lexer = Lexer::new(&contents);
         let source_file = lexer.lex();
         let syntax_tree = Parser::new(source_file);
         let expressions = syntax_tree.parse();
         let evaluator = Evaluator::new();
-        let res = evaluator.evaluate(expressions);
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0].to_string(), "30");
+        let res = evaluator.evaluate(expressions.clone());
+
+        assert_eq!(res[1], Value::None);
+        assert_eq!(res[2], Value::None);
+        assert_eq!(res[4], Value::i32(15));
     }
 }

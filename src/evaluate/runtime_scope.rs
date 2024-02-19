@@ -37,39 +37,39 @@ impl RuntimeScope {
         }
     }
 
-    pub fn get_local_variable(&self, name: &str) -> Option<Variable> {
+    pub fn get_local(&self, name: &str) -> Option<Variable> {
         let values = self.values.borrow();
         values.get(name).cloned()
     }
 
-    pub fn set_local_variable(&self, name: &str, variable: Variable) {
+    pub fn set_local(&self, name: &str, variable: Variable) {
         let mut values = self.values.borrow_mut();
         values.insert(name.to_string(), variable);
     }
 
 
-    pub fn get_global_variable(&self, name: &str) -> Option<Variable> {
-        if let Some(v) = self.get_local_variable(name) {
+    pub fn get_global(&self, name: &str) -> Option<Variable> {
+        if let Some(v) = self.get_local(name) {
             Some(v)
         } else {
             if let Some(parent) = &self.parent {
-                parent.get_global_variable(name)
+                parent.get_global(name)
             } else {
                 None
             }
         }
     }
 
-    pub fn set_global_variable(&self, name: &str, variable: Variable) {
-        if let Some(v) = self.get_local_variable(name) {
-            self.set_local_variable(name, variable);
+    pub fn try_set_global(&self, name: &str, variable: Variable) {
+        if let Some(v) = self.get_local(name) {
+            self.set_local(name, variable);
         } else if let Some(parent) = &self.parent {
-            parent.set_global_variable(name, variable);
+            parent.try_set_global(name, variable);
         }
     }
 
     pub fn declare_function(&self, name: &str, function: Function) {
-        self.values.borrow_mut().insert(name.to_string(), Variable::new_immutable(
+        self.values.borrow_mut().insert(name.to_string(), Variable::init_as_immutable(
             Value::fun { fun: function.clone() },
             function.declared_expression.clone()
         ));

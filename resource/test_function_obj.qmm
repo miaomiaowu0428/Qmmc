@@ -1,4 +1,4 @@
-var add_fun_obj = fun add(x, y) {
+var add_fun_obj = fun add(x:I32, y:I32) {
   x + y
 }
 

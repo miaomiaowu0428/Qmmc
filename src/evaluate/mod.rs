@@ -1,4 +1,5 @@
 pub use evaluator::Evaluator;
+pub use function::Function;
 pub use r#type::Type;
 
 pub use crate::evaluate::runtime_scope::RuntimeScope;
@@ -12,7 +13,4 @@ mod variable;
 mod test;
 mod control_command;
 mod function;
-
-pub use function::Function;
-
 

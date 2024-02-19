@@ -60,8 +60,8 @@ pub enum Expression {
     DeclarationExpression {
         declaration_token: Token,
         identifier_token: Token,
-        equals_token: Token,
-        expression: Box<Expression>,
+        equals_token: Option<Token>,
+        expression: Option<Box<Expression>>,
     },
     AssignmentExpression {
         identifier_token: Token,
@@ -94,7 +94,7 @@ pub enum Expression {
         fun_token: Token,
         identifier_token: Token,
         left_p: Token,
-        parameters: Vec<Token>,
+        parameters: Vec<NameTypePair>,
         right_p: Token,
         body: Box<Expression>,
     },
@@ -138,7 +138,6 @@ impl Expression {
         }
     }
 
-
     pub fn to_token_vec(&self) -> Vec<Token> {
         let mut res = Vec::new();
         match self {
@@ -174,8 +173,13 @@ impl Expression {
             DeclarationExpression { declaration_token, identifier_token, equals_token, expression, } => {
                 res.push(declaration_token.clone());
                 res.push(identifier_token.clone());
-                res.push(equals_token.clone());
-                res.append(&mut expression.to_token_vec());
+                match equals_token {
+                    Some(token) => {
+                        res.push(token.clone());
+                        res.append(&mut expression.as_ref().unwrap().to_token_vec());
+                    }
+                    None => {}
+                }
             }
             AssignmentExpression { identifier_token, equals_token, expression, } => {
                 res.push(identifier_token.clone());
@@ -213,7 +217,11 @@ impl Expression {
                 res.push(fun_token.clone());
                 res.push(identifier_token.clone());
                 res.push(left_p.clone());
-                res.append(&mut parameters.clone());
+                for param in parameters.iter() {
+                    res.push(param.name_token().clone());
+                    res.push(param.colon_token().clone());
+                    res.push(param.type_token().clone());
+                }
                 res.push(right_p.clone());
                 res.append(&mut body.to_token_vec());
             }
@@ -278,8 +286,14 @@ impl Expression {
                 write!(f, "{}{}", indent_str, right_p)
             }
             DeclarationExpression { declaration_token, identifier_token, equals_token, expression, } => {
-                write!(f, "{}{} {} {} ", indent_str, declaration_token, identifier_token, equals_token)?;
-                expression.format_inline(f, indent)
+                write!(f, "{}{} {} ", indent_str, declaration_token, identifier_token)?;
+                match equals_token {
+                    Some(token) => {
+                        write!(f, "{} ", token)?;
+                        expression.as_ref().unwrap().format_inline(f, indent)
+                    }
+                    None => Ok(()),
+                }
             }
             AssignmentExpression { identifier_token, equals_token, expression, } => {
                 write!(f, "{}{} {} ", indent_str, identifier_token, equals_token)?;
@@ -366,8 +380,14 @@ impl Expression {
                 write!(f, "{}", right_p)
             }
             DeclarationExpression { declaration_token, identifier_token, equals_token, expression, } => {
-                write!(f, "{}{} {} {} ", indent_str, declaration_token, identifier_token, equals_token)?;
-                expression.format_inline(f, indent)
+                write!(f, "{}{} {} ", indent_str, declaration_token, identifier_token,)?;
+                match equals_token {
+                    Some(token) => {
+                        write!(f, "{} ", token)?;
+                        expression.as_ref().unwrap().format_inline(f, indent)
+                    }
+                    None => Ok(()),
+                }
             }
             AssignmentExpression { identifier_token, equals_token, expression, } => {
                 write!(f, "{}{} {} ", indent_str, identifier_token, equals_token)?;
@@ -415,6 +435,37 @@ impl Expression {
                 write!(f, ")")
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NameTypePair {
+    pub name: Token,
+    pub colon: Token,
+    pub r#type: Token,
+}
+
+
+impl NameTypePair {
+    pub fn new(name: Token, colon: Token, r#type: Token) -> Self {
+        Self { name, colon, r#type }
+    }
+
+    pub fn name_token(&self) -> &Token {
+        &self.name
+    }
+    pub fn type_token(&self) -> &Token {
+        &self.r#type
+    }
+
+    pub fn colon_token(&self) -> &Token {
+        &self.colon
+    }
+}
+
+impl Display for NameTypePair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.name, self.r#type)
     }
 }
 

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use TokenType::{BreakKeyword, ContinueToken, FunKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PercentToken, ReturnKeyword};
+use TokenType::{BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PercentToken, ReturnKeyword};
 use TokenType::AndKeyword;
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
@@ -184,7 +184,11 @@ impl Lexer {
             }
             ',' => {
                 let c = self.move_next();
-                Token::new(TokenType::CommaToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(CommaToken, c.to_string(), self.line_number(), self.column_number())
+            }
+            ':' => {
+                let c = self.move_next();
+                Token::new(ColonToken, c.to_string(), self.line_number(), self.column_number())
             }
             c => {
                 self.move_next();

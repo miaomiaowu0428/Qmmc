@@ -1,4 +1,4 @@
-fun first_shui_xian_hua_since(n) {
+fun first_shui_xian_hua_since(n: I32) {
     loop {
         n = n + 1
         var temp = n
@@ -27,7 +27,7 @@ fun first_shui_xian_hua_since(n) {
     n
 }
 
-fun add(a , b) {
+fun add(a:I32 , b:I32) {
     a + b
 }
 

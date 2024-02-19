@@ -8,22 +8,34 @@ use crate::evaluate::value::Value;
 pub struct Variable {
     pub mutable: bool,
     pub value: Value,
+    pub initialized: bool,
     pub declared_expression: Expression
 }
 
 impl Variable {
-    pub fn new(mutable: bool, value: Value, declared_expression: Expression) -> Self {
+    pub fn new(mutable: bool, value: Value, initialized: bool, declared_expression: Expression) -> Self {
         Self {
             mutable,
             value,
+            initialized,
             declared_expression
         }
     }
-    pub fn new_mutable(value: Value, declared_expression: Expression) -> Self {
-        Self::new(true, value, declared_expression)
+
+
+    pub fn init_as_mutable(value: Value, declared_expression: Expression) -> Self {
+        Self::new(true, value, true, declared_expression)
     }
-    pub fn new_immutable(value: Value, declared_expression: Expression) -> Self {
-        Self::new(false, value, declared_expression)
+
+    pub fn init_as_immutable(value: Value, declared_expression: Expression) -> Self {
+        Self::new(false, value, true, declared_expression)
+    }
+
+    pub fn uninit_mutable(declared_expression: Expression) -> Self {
+        Self::new(true, Value::None, false, declared_expression)
+    }
+    pub fn uninit_immutable(declared_expression: Expression) -> Self {
+        Self::new(false, Value::None, false, declared_expression)
     }
 
     pub fn r#type(&self) -> Type {
