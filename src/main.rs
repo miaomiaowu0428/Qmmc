@@ -16,7 +16,7 @@ mod analyze;
 mod runtime;
 mod compile;
 
-static PATH: &str = "G:/codefile/rust_source_file/Qmmc/resource/";
+static PATH: &str = "./resource/";
 
 fn main() {
     let mut file =
