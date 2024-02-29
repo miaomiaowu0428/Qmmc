@@ -31,6 +31,7 @@ use TokenType::WhitespaceToken;
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
+use crate::analyze::lex::TokenType::ArrowToken;
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -119,6 +120,11 @@ impl Lexer {
             '+' => {
                 self.move_next();
                 Token::new(PlusToken, "+".to_string(), self.line_number(), self.column_number())
+            }
+            '-' if self.next().is_some() && *self.next().unwrap() == '>' => {
+                self.move_next();
+                self.move_next();
+                Token::new(ArrowToken, "->".to_string(), self.line_number(), self.column_number())
             }
             '-' => {
                 self.move_next();

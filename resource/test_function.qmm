@@ -1,6 +1,5 @@
-fun first_shui_xian_hua_since(n: I32) {
+fun first_shui_xian_hua_since(n: I32) -> I32 {
     loop {
-        n = n + 1
         var temp = n
         var sum = 0
         var digits = 0
@@ -23,22 +22,20 @@ fun first_shui_xian_hua_since(n: I32) {
         if sum == n {
             break
         }
+        n = n + 1
     }
     n
 }
 
-fun add(a:I32 , b:I32) {
-    a + b
-}
-
 
 val first = first_shui_xian_hua_since(100)
-val second = first_shui_xian_hua_since(first)
-val third = first_shui_xian_hua_since(second)
-val forth = first_shui_xian_hua_since(third)
+val second = first_shui_xian_hua_since(first+1)
+val third = first_shui_xian_hua_since(second+1)
+val forth = first_shui_xian_hua_since(third+1)
 
 
-first
-second
-third
-forth
+println(first)
+println(second)
+println(third)
+println(forth)
+

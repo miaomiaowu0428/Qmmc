@@ -6,14 +6,15 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use evaluate::Evaluator;
-
 pub use crate::analyze::lex::Lexer;
+use crate::analyze::syntax_tree::Expression;
 pub use crate::analyze::syntax_tree::Parser;
-use crate::evaluate::{RuntimeScope, Value};
+use crate::compile::{ByteCode, Compiler};
+use crate::runtime::{Runtime, RuntimeScope, Value};
 
 mod analyze;
-mod evaluate;
+mod runtime;
+mod compile;
 
 static PATH: &str = "G:/codefile/rust_source_file/Qmmc/resource/";
 
@@ -24,17 +25,10 @@ fn main() {
     file.read_to_string(&mut contents)
         .expect("Could not read file");
     let lexer = Lexer::new(&contents);
-    let source_file = lexer.lex();
-    // println!("Source File:");
-    // // source_file.print();
-    // println!("todo!()");
-    // println!("tokens: ");
-    // for token in source_file.iter() {
-    //     println!("\t{:?}", token);
-    // }
+    let tokens = lexer.lex();
 
 
-    let syntax_tree = Parser::new(source_file);
+    let syntax_tree = Parser::new(tokens);
     let expressions = syntax_tree.parse();
     if !syntax_tree.diagnostics.is_empty() {
         println!("Parse Diagnostics: ");
@@ -42,45 +36,53 @@ fn main() {
         println!("==============================");
     }
 
-    // for expr in expressions.iter() {
-    //     println!("------------------\nExpr:");
-    //     expr.print_as_line(0);
-    //     println!()
-    // }
-
-    // for expr in expressions.iter() {
-    //     println!("------------------\nExpr:");
-    //     let tokens = expr.to_token_vec();
-    //     for token in tokens.iter() {
-    //         print!("{} ", token);
-    //     }
-    //     println!()
-    // }
-
-    // println!("{:#?}", expressions);
-
-    let evaluator = Evaluator::new();
-    let res = evaluator.evaluate(expressions.clone());
-    evaluator.diagnostics.print();
+    // show_input(&expressions);
 
 
-    let expr_and_res = expressions.iter().zip(res.iter());
+    let static_analyzer = Compiler::new();
+    let checked_expressions = static_analyzer.analyse(expressions);
 
-    let mut i = 1;
-    for (expr, res) in expr_and_res {
-        let res = match res {
-            Value::fun { fun } => "fun".to_string(),
-            _ => format!("{}", res)
-        };
-        println!("------------------\nExpr: {i}{:>8}|-> {}\n{}", "", res, expr);
-        i += 1;
-        println!()
+    // show_ByteCode(&checked_expressions);
+
+    // show_static_scope(&static_analyzer);
+
+
+    if !static_analyzer.diagnostics.is_empty() {
+        println!("Static Analysis Diagnostics: ");
+        static_analyzer.diagnostics.print();
+        println!("==============================");
+    } else {
+        println!("Outputs:");
+        let evaluator = Runtime::new();
+        let values = evaluator.evaluate(checked_expressions);
+        if !evaluator.diagnostics.is_empty() {
+            println!("==============================");
+            println!("Evaluation Diagnostics: ");
+            evaluator.diagnostics.print();
+            println!("==============================");
+        }
+
+        // println!("=================================\n{:#?}", evaluator.scope);
     }
+}
 
+fn show_input(expressions: &Vec<Expression>) {
+    println!("Input Expressions: ");
+    for expression in expressions {
+        println!("{}", expression)
+    }
+    println!("==============================");
+}
 
-    // print_res(res);
+fn show_static_scope(static_analyzer: &Compiler) {
+    println!("\n\nScope:\n{:#?}", static_analyzer.scope);
+}
 
-    print_scope(&evaluator.scope);
+fn show_ByteCode(checked_expressions: &Vec<ByteCode>) {
+    println!("\n\nChecked Expressions:");
+    for expression in checked_expressions {
+        println!("{:#?}", expression);
+    }
 }
 
 fn print_scope(scope: &RuntimeScope) {

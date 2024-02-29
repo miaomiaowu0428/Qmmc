@@ -1,15 +1,13 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
-use std::rc::Rc;
-
 use colored::Colorize;
 
 use TokenType::{FloatPointToken, IntegerToken};
 
 use crate::analyze::lex::token::{Token, TokenType};
 use crate::analyze::syntax_tree::Expression;
-use crate::evaluate::{Function, Type};
+use crate::runtime::RuntimeType;
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticBag {
@@ -78,7 +76,7 @@ impl DiagnosticBag {
     }
 
 
-    pub(crate) fn report_argument_type_mismatch(&self, function_name: &str, parameter_name: &str, need: Type, found: Type) {
+    pub(crate) fn report_argument_type_mismatch(&self, function_name: &str, parameter_name: &str, need: RuntimeType, found: RuntimeType) {
         let message = format!("parameter {} in function:{} need type {}, but {} is given", parameter_name.red(), function_name.blue(), need.to_string().green(), found.to_string().red());
         self.report(message);
     }
@@ -124,7 +122,7 @@ impl DiagnosticBag {
         self.report(msg)
     }
 
-    pub(crate) fn report_invalid_binary_op(&self, left_type: Type, op_token: Token, right_type: Type) {
+    pub(crate) fn report_invalid_binary_op(&self, left_type: RuntimeType, op_token: Token, right_type: RuntimeType) {
         let msg = format!("operator {} is not defined for {} and {}",
                           op_token.text.red(),
                           left_type.to_string().bright_yellow(),
@@ -132,22 +130,13 @@ impl DiagnosticBag {
         self.report(msg);
     }
 
-    pub(crate) fn report_invalid_unary_op(&self, op_token: Token, operand_type: Type) {
+    pub(crate) fn report_invalid_unary_op(&self, op_token: Token, operand_type: RuntimeType) {
         let msg = format!("operator {} is not defined for {}",
                           op_token.text.red(),
                           operand_type.to_string().bright_yellow());
         self.report(msg);
     }
 
-
-    pub(crate) fn report_continue_function_call(&self, name: &String, fun: Rc<Function>) {
-        let message = format!("cannot use continue in function {{ {name} }},which is declared by:\n {fun}");
-        self.report(message);
-    }
-    pub(crate) fn report_break_function_call(&self, name: &String, fun: Rc<Function>) {
-        let message = format!("cannot use break in function {{ {name} }},which is declared by:\n {fun}");
-        self.report(message);
-    }
 }
 
 #[derive(Debug, Clone)]

@@ -3,7 +3,6 @@ use std::fmt::{Debug, Display};
 
 use crate::analyze::lex::Token;
 use crate::analyze::syntax_tree::Expression;
-use crate::evaluate::Type;
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -23,13 +22,6 @@ impl Block {
     pub fn new() -> Self {
         Self {
             expressions: RefCell::new(Vec::new()),
-        }
-    }
-
-    pub fn r#type(&self) -> Type {
-        match self.expressions.borrow().last() {
-            Some(e) => e.r#type(),
-            None => Type::None,
         }
     }
 

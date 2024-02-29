@@ -4,9 +4,9 @@ use std::cell::RefCell;
 
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression, Statement};
 use Expression::AssignmentExpression;
-use Expression::DeclarationExpression;
+use Expression::VarDeclarationExpression;
 use Expression::LiteralExpression;
-use TokenType::{BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword, ReturnKeyword};
+use TokenType::{ArrowToken, BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword, ReturnKeyword};
 use TokenType::IdentifierToken;
 use TokenType::IfKeyword;
 use TokenType::IntegerToken;
@@ -26,8 +26,8 @@ use crate::analyze::lex::token::TokenType::FloatPointToken;
 use crate::analyze::lex::TokenType::EqualsToken;
 use crate::analyze::lex::TokenType::LoopKeyword;
 use crate::analyze::syntax_tree::block::Block;
-use crate::analyze::syntax_tree::Expression::{BracketedExpression, ContinueExpression, FunctionCallExpression, FunctionDeclarationExpression};
-use crate::analyze::syntax_tree::expression::{Expression, NameTypePair};
+use crate::analyze::syntax_tree::Expression::{BracketedExpression, ContinueExpression, FunctionCallExpression, FunctionDeclarationExpression, FunctionTypeExpression};
+use crate::analyze::syntax_tree::expression::{Expression, IdentifierTypePair};
 use crate::analyze::syntax_tree::expression::Expression::BinaryExpression;
 use crate::analyze::syntax_tree::expression::Expression::ParenthesizedExpression;
 use crate::analyze::syntax_tree::expression::Expression::UnaryExpression;
@@ -82,11 +82,20 @@ impl Parser {
     }
 
     fn parse_function_declaration(&self) -> Expression {
-        let fun_token = self.move_next();
-        let identifier_token = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]);
+        let fun_token = self.move_next(); // fun keyword
+
+        let identifier_token = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]); // function name
+
+        // function parameters
         let left_p = self.match_token(|t| t.token_type == LeftParenthesisToken, vec![LeftParenthesisToken]);
         let parameters = self.parse_function_parameters();
         let right_p = self.match_token(|t| t.token_type == RightParenthesisToken, vec![RightParenthesisToken]);
+
+        // return type
+        let arrow_token = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
+        let res_type_description = Box::from(self.parse_type_description());
+
+        // function body
         let body = self.parse_block();
         FunctionDeclarationExpression {
             fun_token,
@@ -94,7 +103,27 @@ impl Parser {
             left_p,
             parameters,
             right_p,
-            body: Box::new(body),
+            arrow_token,
+            res_type_description,
+            body: Box::from(body),
+        }
+    }
+    fn parse_type_description(&self) -> Expression {
+        if self.current().token_type == IdentifierToken {
+            IdentifierExpression { identifier_token: self.move_next() }
+        } else {
+            let lp = self.match_token(|t| t.token_type == LeftParenthesisToken, vec![LeftParenthesisToken]);
+            let parameter_types = self.parse_function_parameter_types();
+            let rp = self.match_token(|t| t.token_type == RightParenthesisToken, vec![RightParenthesisToken]);
+            let arrow = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
+            let res_type = self.parse_type_description();
+            FunctionTypeExpression {
+                lp,
+                parameter_types,
+                rp,
+                arrow,
+                return_type: Box::new(res_type),
+            }
         }
     }
 
@@ -120,7 +149,7 @@ impl Parser {
         }
     }
 
-    fn parse_function_parameters(&self) -> Vec<NameTypePair> {
+    fn parse_function_parameters(&self) -> Vec<IdentifierTypePair> {
         let mut parameters = Vec::new();
         while self.current().token_type != RightParenthesisToken {
             parameters.push(self.parse_name_type_pair());
@@ -131,14 +160,25 @@ impl Parser {
         }
         parameters
     }
-    fn parse_name_type_pair(&self) -> NameTypePair {
+    fn parse_function_parameter_types(&self) -> Vec<Expression> {
+        let mut parameters = Vec::new();
+        while self.current().token_type != RightParenthesisToken {
+            parameters.push(self.parse_type_description());
+            if self.current().token_type == RightParenthesisToken {
+                break;
+            }
+            self.match_token(|t| t.token_type == CommaToken, vec![CommaToken]);
+        }
+        parameters
+    }
+    fn parse_name_type_pair(&self) -> IdentifierTypePair {
         let name = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]);
         let colon = self.match_token(|t| t.token_type == ColonToken, vec![ColonToken]);
-        let r#type = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]);
-        NameTypePair {
+        let type_description = self.parse_type_description();
+        IdentifierTypePair {
             name,
             colon,
-            r#type
+            type_description,
         }
     }
 
@@ -267,18 +307,18 @@ impl Parser {
         if self.current().token_type == EqualsToken {
             let equals_token = Some(self.move_next());
             let expression = Some(Box::new(self.parse_expression()));
-            DeclarationExpression {
+            VarDeclarationExpression {
                 declaration_token,
                 identifier_token,
                 equals_token,
-                expression,
+                assigment_expr: expression,
             }
         } else {
-            DeclarationExpression {
+            VarDeclarationExpression {
                 declaration_token,
                 identifier_token,
                 equals_token: None,
-                expression: None,
+                assigment_expr: None,
             }
         }
     }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use crate::evaluate::Function;
-use crate::evaluate::r#type::Type;
+use crate::runtime::Function;
+use crate::runtime::r#type::RuntimeType;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
@@ -30,7 +30,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::None => write!(f, "None"),
-            Value::fun { fun } => write!(f, "{}", fun),
+            Value::fun { fun } => write!(f, "{}", "fun"),
             Value::i32(i) => write!(f, "{}", i),
             Value::bool(b) => write!(f, "{}", b),
             Value::f32(fl) => write!(f, "{}", fl),
@@ -40,13 +40,13 @@ impl Display for Value {
 
 
 impl Value {
-    pub fn r#type(&self) -> Type {
+    pub fn r#type(&self) -> RuntimeType {
         match self {
-            Value::None => Type::None,
-            Value::fun { .. } => Type::Unknown,
-            Value::i32(_) => Type::I32,
-            Value::bool(_) => Type::Bool,
-            Value::f32(_) => Type::F32,
+            Value::None => RuntimeType::None,
+            Value::fun { .. } => RuntimeType::Unknown,
+            Value::i32(_) => RuntimeType::I32,
+            Value::bool(_) => RuntimeType::Bool,
+            Value::f32(_) => RuntimeType::F32,
         }
     }
     pub(crate) fn as_i32(&self) -> i32 {

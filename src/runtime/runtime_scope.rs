@@ -7,9 +7,9 @@ use std::rc::Rc;
 use colored::Colorize;
 
 use crate::analyze::diagnostic::DiagnosticBag;
-use crate::evaluate::function::Function;
-use crate::evaluate::Value;
-use crate::evaluate::variable::Variable;
+use crate::runtime::function::Function;
+use crate::runtime::Value;
+use crate::runtime::variable::Variable;
 
 pub type VariableMap = HashMap<String, Variable>;
 
@@ -63,15 +63,20 @@ impl RuntimeScope {
     pub fn try_set_global(&self, name: &str, variable: Variable) {
         if let Some(v) = self.get_local(name) {
             self.set_local(name, variable);
-        } else if let Some(parent) = &self.parent {
-            parent.try_set_global(name, variable);
+        } else {
+            if let Some(parent) = &self.parent {
+                parent.try_set_global(name, variable);
+            } else {
+                self.set_local(name, variable);
+            }
         }
     }
 
+
+
     pub fn declare_function(&self, name: &str, function: Function) {
-        self.values.borrow_mut().insert(name.to_string(), Variable::init_as_immutable(
+        self.values.borrow_mut().insert(name.to_string(), Variable::new(
             Value::fun { fun: function.clone() },
-            function.declared_expression.clone()
         ));
     }
 
@@ -83,8 +88,6 @@ impl RuntimeScope {
             let chinese_count = name.chars().filter(|c| !c.is_ascii()).count();
             let name = if let Value::fun { .. } = variable.value {
                 name.blue().to_string()
-            } else if variable.mutable {
-                name.purple().to_string()
             } else {
                 name.green().to_string()
             };

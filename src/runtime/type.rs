@@ -2,14 +2,14 @@
 
 use std::fmt::{Display, Formatter};
 
-use Type::Unknown;
+use RuntimeType::Unknown;
 
-use crate::evaluate::Type::Bool;
-use crate::evaluate::Type::F32;
-use crate::evaluate::Type::I32;
+use crate::runtime::RuntimeType::Bool;
+use crate::runtime::RuntimeType::F32;
+use crate::runtime::RuntimeType::I32;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Type {
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum RuntimeType {
     Unknown,
     None,
     I32,
@@ -17,7 +17,7 @@ pub enum Type {
     F32,
 }
 
-impl From<&String> for Type {
+impl From<&String> for RuntimeType {
     fn from(s: &String) -> Self {
         match s.as_str() {
             "I32" => I32,
@@ -28,11 +28,11 @@ impl From<&String> for Type {
     }
 }
 
-impl Display for Type {
+impl Display for RuntimeType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let string = match self {
             Unknown => "Unknown",
-            Type::None => "None",
+            RuntimeType::None => "None",
             I32 => "I32",
             Bool => "Bool",
             F32 => "F32",

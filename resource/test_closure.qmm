@@ -1,16 +1,18 @@
-fun get_add_num(right: I32) {
-    fun _ (left: I32) {
-        left + right
+fun get_add_num(right: I32) -> (I32) -> () -> I32 {
+    fun add_num (left: I32) -> () -> I32 {
+        fun get_res () -> I32 {
+            left + right
+        }
     }
 }
 
-val add_7 = get_add_num(7)
+val get_add_7 = get_add_num(7)
 
-val res
+var get_res = get_add_7(8)
 
-res = add_7(8)
+var res = get_res()
 
-res
+println(res)
 
 
 

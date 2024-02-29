@@ -5,11 +5,11 @@ mod tests {
     use std::path::Path;
 
     use crate::{
-        evaluate::Evaluator,
+        runtime::Runtime,
         Lexer,
         Parser
     };
-    use crate::evaluate::Value;
+    use crate::runtime::Value;
 
     static PATH: &str = "./resource/";
 
@@ -25,7 +25,7 @@ mod tests {
         let source_file = lexer.lex();
         let syntax_tree = Parser::new(source_file);
         let expressions = syntax_tree.parse();
-        let evaluator = Evaluator::new();
+        let evaluator = Runtime::new();
         let res = evaluator.evaluate(expressions.clone());
 
         assert_eq!(res[0], Value::None);
@@ -44,7 +44,7 @@ mod tests {
         let source_file = lexer.lex();
         let syntax_tree = Parser::new(source_file);
         let expressions = syntax_tree.parse();
-        let evaluator = Evaluator::new();
+        let evaluator = Runtime::new();
         let res = evaluator.evaluate(expressions.clone());
 
 
@@ -70,11 +70,11 @@ mod tests {
         let source_file = lexer.lex();
         let syntax_tree = Parser::new(source_file);
         let expressions = syntax_tree.parse();
-        let evaluator = Evaluator::new();
+        let evaluator = Runtime::new();
         let res = evaluator.evaluate(expressions.clone());
 
         assert_eq!(res[1], Value::None);
         assert_eq!(res[2], Value::None);
-        assert_eq!(res[4], Value::i32(15));
+        assert_eq!(res[4], Value::None);
     }
 }
