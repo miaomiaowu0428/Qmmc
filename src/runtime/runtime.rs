@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use BinaryOperatorType::{Addition, Division, Equals, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual, LogicalAnd, LogicalOr, Multiplication, NotEquals, Remainder, Subtraction};
-use ByteCode::{Declaration};
+use ByteCode::{VarDeclare};
 use RuntimeType::{Bool, I32};
 
 use crate::analyze::diagnostic::DiagnosticBag;
@@ -53,7 +53,7 @@ impl Runtime {
             Literal { value } => Ok(self.build_literal_value(value)),
             Identifier { identifier } => Ok(self.evaluate_identifier(identifier)),
             Assignment { identifier, expression } => Ok(self.evaluate_assignment(identifier, *expression)),
-            Declaration { identifier, expression } => {
+            VarDeclare { identifier, expression } => {
                 let value = self.evaluate_expression(*expression)?;
                 self.scope.set_local(&identifier.text, Variable::new(value));
                 Ok(Value::None)

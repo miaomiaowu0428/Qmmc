@@ -1,4 +1,4 @@
-mod checked_expression;
+mod bytecode;
 mod binary_operator;
 mod unary_operator;
 mod compiler;
@@ -8,9 +8,9 @@ mod r#type;
 
 pub use r#type::RawType;
 pub use compiler::Compiler;
-pub use checked_expression::ByteCode;
-pub use checked_expression::ConstExpr;
-pub use checked_expression::FunctionObj;
+pub use bytecode::ByteCode;
+pub use bytecode::ConstExpr;
+pub use bytecode::FunctionObj;
 pub use unary_operator::UnaryOperatorType;
 pub use unary_operator::UnaryOperator;
 pub use binary_operator::BinaryOperatorType;

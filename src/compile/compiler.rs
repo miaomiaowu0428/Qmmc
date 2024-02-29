@@ -10,8 +10,7 @@ use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::{Token, TokenType};
 use crate::analyze::syntax_tree::{Block, Expression, IdentifierTypePair};
 use crate::compile::binary_operator::BinaryOperator;
-use crate::compile::ByteCode::Declaration;
-use crate::compile::checked_expression::{ByteCode, ConstExpr, FunctionObj};
+use crate::compile::bytecode::{ByteCode, ConstExpr, FunctionObj};
 use crate::compile::compile_time_scope::CompileTimeScope;
 use crate::compile::r#type::FunctionType;
 use crate::compile::RawType;
@@ -70,7 +69,7 @@ impl Compiler {
             Expression::ContinueExpression { .. } => ByteCode::Continue,
             Expression::FunctionDeclarationExpression { identifier_token, parameters, res_type_description, body, .. } => self.check_function_declaration(identifier_token, parameters, res_type_description, body),
             Expression::ReturnExpression { expression, .. } => self.check_return_expression(expression),
-            Expression::FunctionCallExpression { identifier_token, arguments, .. } => self.check_func_call(identifier_token, arguments),
+            Expression::FunctionCallExpression { identifier_token, arguments, .. } => self.check_function_call(identifier_token, arguments),
             Expression::FunctionTypeExpression { parameter_types, return_type, .. } => self.check_function_type_expression(parameter_types, return_type),
         }
     }
@@ -181,7 +180,7 @@ impl Compiler {
 
                 self.scope.set_local(&identifier_token.text, VariableSymbol::init_as(mutable, self.type_of(&checked_expression.clone()).clone(), ));
 
-                Declaration { identifier: identifier_token, expression: Box::new(checked_expression) }
+                ByteCode::VarDeclare { identifier: identifier_token, expression: Box::new(checked_expression) }
             }
             None => {
                 self.scope.set_local(&identifier_token.text, VariableSymbol::new_immut(RawType::None, ));
@@ -240,7 +239,7 @@ impl Compiler {
 
         let child_scope = self.new_child();
         for (i, param) in params.iter().enumerate() {
-            child_scope.scope.set_local(&param.name.text, VariableSymbol::new_immut(parameter_types[i].clone(), ));
+            child_scope.scope.set_local(&param.name.text, VariableSymbol::new_mut(parameter_types[i].clone()));
         }
         let checked_body = child_scope.check_expression(*body);// should be a Block
         let body_type = child_scope.type_of(&checked_body);
@@ -249,7 +248,7 @@ impl Compiler {
         let checked_res_type = self.check_expression(*res_type_description);
         let res_type = self.type_of(&checked_res_type);
 
-        self.match_function_body_type(&*identifier.text, &checked_body, res_type.clone());
+        child_scope.match_function_body_type(&*identifier.text, &checked_body, res_type.clone());
 
         let _type = FunctionType {
             param_types: parameter_types.clone(),
@@ -271,7 +270,7 @@ impl Compiler {
         }
     }
 
-    fn check_func_call(&self, identifier: Token, arguments: Vec<Expression>) -> ByteCode {
+    fn check_function_call(&self, identifier: Token, arguments: Vec<Expression>) -> ByteCode {
         if BUILT_IN_FUNCTION_NAME.contains(&identifier.text) {
             let arguments: Vec<ByteCode> = arguments.iter().map(|a| self.check_expression(a.clone())).collect();
             ByteCode::CallBuiltIn { name: identifier, arguments }
@@ -334,7 +333,9 @@ impl Compiler {
                         match symbol {
                             Some(s) => s.r#type,
                             None => {
-                                self.diagnostics.report_undefined_variable(&identifier.text);
+                                self.diagnostics.report(
+                                    format!("{} at ({},{}) is not defined", identifier.text.red(), identifier.line_num.to_string().red(), identifier.column_num.to_string().red())
+                                );
                                 RawType::None
                             }
                         }
@@ -373,14 +374,17 @@ impl Compiler {
             FunType { _type } => {
                 RawType::FunctionType { _type: _type.clone() }
             }
-            Declaration => { RawType::None }
+            ByteCode::VarDeclare { .. } => { RawType::None }
         }
     }
 
 
     fn check_return_type(&self, name: &str, expression: &ByteCode, res_type: RawType) {
         if self.type_of(expression) != res_type {
-            self.diagnostics.report(format!("return type mismatch in fun {}", name.red()));
+            self.diagnostics.report(format!("return type mismatch in fun {}, expected {}, given {}",
+                                            name.red(),
+                                            format!("{:?}", res_type).green(),
+                                            format!("{:?}", self.type_of(expression)).red()));
         }
     }
 

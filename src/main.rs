@@ -79,7 +79,7 @@ fn show_static_scope(static_analyzer: &Compiler) {
 }
 
 fn show_ByteCode(checked_expressions: &Vec<ByteCode>) {
-    println!("\n\nChecked Expressions:");
+    println!("\n\nByteCode:");
     for expression in checked_expressions {
         println!("{:#?}", expression);
     }

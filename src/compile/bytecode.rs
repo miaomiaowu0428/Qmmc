@@ -28,7 +28,7 @@ pub enum ByteCode {
     Identifier {
         identifier: Token,
     },
-    Declaration {
+    VarDeclare {
         identifier: Token,
         expression: Box<ByteCode>,
     },
