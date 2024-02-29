@@ -271,12 +271,6 @@ impl Compiler {
         }
     }
 
-    // fn check_function_body(&self, body: &Expression) -> ByteCode {
-    //     let mut res = vec![];
-    //     // TODO: check if contains nonlocal identifier
-    //     ByteCode::Block { expressions: res }
-    // }
-
     fn check_func_call(&self, identifier: Token, arguments: Vec<Expression>) -> ByteCode {
         if BUILT_IN_FUNCTION_NAME.contains(&identifier.text) {
             let arguments: Vec<ByteCode> = arguments.iter().map(|a| self.check_expression(a.clone())).collect();

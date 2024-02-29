@@ -52,7 +52,6 @@ impl Runtime {
             }
             Literal { value } => Ok(self.build_literal_value(value)),
             Identifier { identifier } => Ok(self.evaluate_identifier(identifier)),
-            // NonLocalIdentifier { identifier } => self.evaluate_nonlocal(identifier),
             Assignment { identifier, expression } => Ok(self.evaluate_assignment(identifier, *expression)),
             Declaration { identifier, expression } => {
                 let value = self.evaluate_expression(*expression)?;
@@ -105,8 +104,6 @@ impl Runtime {
         }
     }
 
-    // fn evaluate_nonlocal(&self, identifier: Token) -> Value {}
-
     fn evaluate_function_declaration(&self, name: Token, function: FunctionObj) -> Result<Value, ControlCommand> {
         let parent_scope = self.scope.clone();
 
@@ -122,7 +119,7 @@ impl Runtime {
 
         let body = function.body.clone();
 
-        let fun = Function::new(parent_scope, parameters, *body.clone());
+        let fun = Function::new(parameters, *body.clone());
         self.scope.declare_function(&name.text, fun.clone());
         Ok(Value::fun { fun })
     }
@@ -207,8 +204,8 @@ impl Runtime {
         let fun = self.scope.get_global(&identifier_token.text);
         if let Some(Variable { value: fun { fun } }) = fun {
 
-            // use the parent scope of the function to create a new child evaluator
-            let child_evaluator = Runtime::with_scope(fun.parent_scope.clone());
+            // create a new child evaluator
+            let child_evaluator = self.new_child();
 
             // initialize the parameters
             for (param, arg) in fun.parameters.iter().zip(arguments.iter()) {

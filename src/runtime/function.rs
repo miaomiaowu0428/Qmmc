@@ -1,12 +1,10 @@
 use std::fmt::Debug;
-use std::rc::Rc;
 
-use crate::runtime::{RuntimeScope, RuntimeType};
 use crate::compile::ByteCode;
+use crate::runtime::RuntimeType;
 
 #[derive(Clone)]
 pub struct Function {
-    pub parent_scope: Rc<RuntimeScope>,
     pub parameters: Vec<(String, RuntimeType)>,
     pub body: ByteCode,
 }
@@ -22,9 +20,8 @@ impl Debug for Function {
 
 
 impl Function {
-    pub fn new(parent_scope: Rc<RuntimeScope>, parameters: Vec<(String, RuntimeType)>, body: ByteCode) -> Self {
+    pub fn new(parameters: Vec<(String, RuntimeType)>, body: ByteCode) -> Self {
         Self {
-            parent_scope,
             parameters,
             body,
         }

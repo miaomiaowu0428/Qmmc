@@ -28,9 +28,6 @@ pub enum ByteCode {
     Identifier {
         identifier: Token,
     },
-    // NonLocalIdentifier {
-    //     identifier: Token,
-    // },
     Declaration {
         identifier: Token,
         expression: Box<ByteCode>,
