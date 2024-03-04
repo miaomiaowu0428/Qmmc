@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub use runtime::Runtime;
 pub use function::Function;
 pub use r#type::RuntimeType;

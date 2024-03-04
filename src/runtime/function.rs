@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 
-use crate::compile::ByteCode;
+use crate::compile::CheckedExpression;
 use crate::runtime::RuntimeType;
 
 #[derive(Clone)]
 pub struct Function {
     pub parameters: Vec<(String, RuntimeType)>,
-    pub body: ByteCode,
+    pub body: CheckedExpression,
 }
 
 impl Debug for Function {
@@ -20,7 +20,7 @@ impl Debug for Function {
 
 
 impl Function {
-    pub fn new(parameters: Vec<(String, RuntimeType)>, body: ByteCode) -> Self {
+    pub fn new(parameters: Vec<(String, RuntimeType)>, body: CheckedExpression) -> Self {
         Self {
             parameters,
             body,

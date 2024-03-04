@@ -1,14 +1,18 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+
+use crate::compile::r#type::FunctionDeclare;
 use crate::compile::variable_symbol::VariableSymbol;
 
 type VariableMap = HashMap<String, VariableSymbol>;
+type FunctionMap = HashMap<String, FunctionDeclare>;
 
 #[derive(Debug)]
 pub struct CompileTimeScope {
     pub parent: Option<Rc<CompileTimeScope>>,
     pub variables: RefCell<VariableMap>,
+    pub functions: RefCell<FunctionMap>,
 }
 
 
@@ -17,12 +21,14 @@ impl CompileTimeScope {
         Self {
             parent: None,
             variables: RefCell::new(HashMap::new()),
+            functions: RefCell::new(HashMap::new()),
         }
     }
     pub fn with_parent(parent: Option<Rc<CompileTimeScope>>) -> Self {
         Self {
             parent,
             variables: RefCell::new(HashMap::new()),
+            functions: RefCell::new(HashMap::new()),
         }
     }
 
@@ -57,6 +63,16 @@ impl CompileTimeScope {
             values.insert(name.to_string(), variable);
         }
     }
+
+    pub fn declare_function(&self, name: &str, function: FunctionDeclare) {
+        let mut values = self.functions.borrow_mut();
+        if values.contains_key(name) {
+            // self.diagnostics.report_function_already_declared(name);
+        } else {
+            values.insert(name.to_string(), function);
+        }
+    }
+
 
     pub fn try_set_global(&self, name: &str, variable: VariableSymbol) {
         if let Some(v) = self.get_local(name) {

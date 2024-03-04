@@ -11,3 +11,4 @@ rustflags = ["-A warnings"]
 colored = "2.1.0"
 lazy_static = "1.4.0"
 inkwell = { version = "0.4.0", features = ["llvm10-0"] }
+llvm-ir = { version = "0.11.0", features = ["llvm-10"] }

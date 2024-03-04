@@ -1,0 +1,6 @@
+fun main() -> I32 {
+    if (true) {
+        return 888
+    }
+    return 8
+}
