@@ -7,6 +7,7 @@ use std::io::Read;
 use std::path::Path;
 use std::process::Command;
 
+use colored::Colorize;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 
@@ -15,7 +16,6 @@ use crate::analyze::syntax_tree::Expression;
 pub use crate::analyze::syntax_tree::Parser;
 use crate::compile::{CheckedExpression, StaticAnalyzer};
 use crate::IR_building::IRBuilder;
-use crate::runtime::{RuntimeScope, Value};
 
 mod analyze;
 mod runtime;
@@ -29,7 +29,7 @@ static FILE_NAME: &str = "main_ret_8";
 
 fn main() {
     let mut file =
-        File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME,".qmm"))).expect("Could not open file");
+        File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm"))).expect("Could not open file");
     let mut contents = String::new();
     file.read_to_string(&mut contents)
         .expect("Could not read file");
@@ -61,7 +61,7 @@ fn main() {
         static_analyzer.diagnostics.print();
         println!("==============================");
     } else {
-        println!("Outputs:\n");
+        println!("IR:");
 
         let context = Context::create();
         let module = context.create_module(FILE_NAME);
@@ -74,67 +74,50 @@ fn main() {
         ir_builder.print_res();
 
 
-        let test_path = format!("{}{}{}", RES_PATH, FILE_NAME,".ll");
-        // ir_builder.save_as(&test_path);
+        {
+            let RES_FILE = &*format!("{}{}", RES_PATH, FILE_NAME);
 
-        let output = Command::new(format!("{}{}", RES_PATH, FILE_NAME,))
-            .output()
-            .expect("Failed to execute command");
-        let exit_code = output.status.code().unwrap();
-        println!("Exit Code of Main(): {}\n\n\n", exit_code);
+            let test_path = format!("{}{}", RES_FILE, ".ll");
+            ir_builder.save_as(&test_path);
+
+            let llc_source = format!("{}{}", RES_FILE, ".ll");
+            let llc_output = Command::new("llc")
+                .arg(llc_source)
+                .output()
+                .expect("Failed to execute llc command");
+
+            if llc_output.status.success() {
+                println!("{}", "successfully compiled to .ll".green());
+            } else {
+                eprintln!("llc command failed: {}", String::from_utf8_lossy(&llc_output.stderr));
+            }
+
+
+            let clang_source = format!("{}{}", RES_FILE, ".s");
+            let clang_output = Command::new("clang")
+                .arg(clang_source)
+                .arg("-o")
+                .arg(RES_FILE)
+                .output()
+                .expect("Failed to execute clang command");
+
+            if clang_output.status.success() {
+                println!("{}", "successfully compiled to .s".green());
+            } else {
+                eprintln!("clang command failed: {}", String::from_utf8_lossy(&clang_output.stderr));
+            }
+
+            let output = Command::new(RES_FILE)
+                .output()
+                .expect("Failed to execute command");
+            let exit_code = output.status.code().unwrap();
+
+            println!("\nExit Code of main(): {}\n\n\n", exit_code);
+        }
 
         ir_builder.diagnostics.print();
     }
 }
-
-
-// fn main() {
-//     let mut file =
-//         File::open(Path::new(&format!("{}{}", PATH, "test_function.qmm"))).expect("Could not open file");
-//     let mut contents = String::new();
-//     file.read_to_string(&mut contents)
-//         .expect("Could not read file");
-//     let lexer = Lexer::new(&contents);
-//     let tokens = lexer.lex();
-//
-//
-//     let syntax_tree = Parser::new(tokens);
-//     let expressions = syntax_tree.parse();
-//     if !syntax_tree.diagnostics.is_empty() {
-//         println!("Parse Diagnostics: ");
-//         syntax_tree.diagnostics.print();
-//         println!("==============================");
-//     }
-//
-//     // show_input(&expressions);
-//
-//
-//     let static_analyzer = StaticAnalyzer::new();
-//     let checked_expressions = static_analyzer.analyse(expressions);
-//
-//     // show_ByteCode(&checked_expressions);
-//
-//     // show_static_scope(&static_analyzer);
-//
-//
-//     if !static_analyzer.diagnostics.is_empty() {
-//         println!("Static Analysis Diagnostics: ");
-//         static_analyzer.diagnostics.print();
-//         println!("==============================");
-//     } else {
-//         println!("Outputs:");
-//         let evaluator = Runtime::new();
-//         let values = evaluator.evaluate(checked_expressions);
-//         if !evaluator.diagnostics.is_empty() {
-//             println!("==============================");
-//             println!("Evaluation Diagnostics: ");
-//             evaluator.diagnostics.print();
-//             println!("==============================");
-//         }
-//
-//         // println!("=================================\n{:#?}", evaluator.scope);
-//     }
-// }
 
 fn show_input(expressions: &Vec<Expression>) {
     println!("Input Expressions: ");
@@ -153,17 +136,4 @@ fn show_ByteCode(checked_expressions: &Vec<CheckedExpression>) {
     for expression in checked_expressions {
         println!("{:#?}", expression);
     }
-}
-
-fn print_scope(scope: &RuntimeScope) {
-    println!("==============================\nVariables:\n{}", scope.variables_to_string());
-    println!("==============================");
-}
-
-fn print_res(res: Vec<Value>) {
-    println!("Result: ");
-    for v in res {
-        println!("\t{}", v);
-    }
-    println!("==============================");
 }

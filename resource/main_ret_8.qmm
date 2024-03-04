@@ -1,6 +1,8 @@
 fun main() -> I32 {
-    if (true) {
-        return 888
+    if (false) {
+        return 255
+    } else {
+        return 0
     }
     return 8
 }
