@@ -2,7 +2,7 @@ fun main() -> I32 {
     if (false) {
         return 255
     } else {
-        return 0
+        return 256
     }
-    return 8
+    8
 }
