@@ -1,8 +1,16 @@
-fun main() -> I32 {
-    if (false) {
-        return 255
-    } else {
-        return 256
-    }
-    8
+fun ret_bool() -> Bool {
+    1 == 2
 }
+
+
+fun main() -> Bool {
+    if (true == false) {
+        return false
+    } else if (true == true) {
+        return true
+    }
+    ret_bool()
+}
+
+
+

@@ -252,23 +252,17 @@ impl StaticAnalyzer {
             return_type: Box::from(res_type.clone())
         };
 
-        self.scope.declare_function(&identifier.text, FunctionDeclare {
+        let func_declare = FunctionDeclare {
             _type: _type.clone(),
             param_names: params.iter().map(|p| p.name.text.clone()).collect(),
             body: checked_body.clone()
-        });
+        };
 
+        self.scope.declare_function(&identifier.text, func_declare.clone());
 
         CheckedExpression::FunctionDeclaration {
             name: identifier,
-            function: Box::from(FunctionDeclare {
-                _type: FunctionType {
-                    param_types: parameter_types,
-                    return_type: Box::from(res_type)
-                },
-                param_names: params.iter().map(|p| p.name.text.clone()).collect(),
-                body: checked_body
-            })
+            function: Box::from(func_declare)
         }
     }
 
@@ -279,6 +273,8 @@ impl StaticAnalyzer {
                 let checked_expression = self.check_expression(e.clone());
                 if let CheckedExpression::Return { expression } = &checked_expression {
                     self.check_return_type(name, &expression, res_type.clone());
+                } else {
+                    self.check_inner_return_type(name, &checked_expression, res_type);
                 }
                 expressions.push(checked_expression);
             }
@@ -289,12 +285,71 @@ impl StaticAnalyzer {
         CheckedExpression::Block { expressions }
     }
 
-    fn check_function_call(&self, identifier: Token, arguments: Vec<Expression>) -> CheckedExpression {
-        if BUILT_IN_FUNCTION_NAME.contains(&identifier.text) {
+    fn check_inner_return_type(&self, name: &str, expression: &CheckedExpression, res_type: RawType) {
+        match expression {
+            CheckedExpression::Block { expressions } => {
+                for e in expressions {
+                    self.check_inner_return_type(name, e, res_type.clone());
+                }
+            }
+            CheckedExpression::Return { expression } => {
+                self.check_return_type(name, expression, res_type);
+            }
+            CheckedExpression::If { condition, then, r#else } => {
+                self.check_inner_return_type(name, then, res_type.clone());
+                if let Some(e) = r#else {
+                    self.check_inner_return_type(name, e, res_type);
+                }
+            }
+            CheckedExpression::Loop { body } => {
+                self.check_inner_return_type(name, body, res_type);
+            }
+            CheckedExpression::While { condition, body } => {
+                self.check_inner_return_type(name, body, res_type);
+            }
+            _ => {}
+        }
+    }
+
+    fn check_function_call(&self, name: Token, arguments: Vec<Expression>) -> CheckedExpression {
+        if BUILT_IN_FUNCTION_NAME.contains(&name.text) {
             let arguments: Vec<CheckedExpression> = arguments.iter().map(|a| self.check_expression(a.clone())).collect();
-            CheckedExpression::CallBuiltIn { name: identifier, arguments }
+            CheckedExpression::CallBuiltIn { name, arguments }
         } else {
-            todo!("try get fun and check the arguments")
+            let fun = self.scope.get_global_function(&name.text);
+            match fun {
+                Some(f) => {
+                    let arguments: Vec<CheckedExpression> = arguments.iter().map(|a| self.check_expression(a.clone())).collect();
+                    if f._type.param_types.len() != arguments.len() {
+                        self.diagnostics.report(format!(
+                            "function {} expects {} arguments, but {} given",
+                            name.text.red(),
+                            f._type.param_types.len().to_string().green(),
+                            arguments.len().to_string().red()
+                        ));
+                    }
+                    for (i, arg) in arguments.iter().enumerate() {
+                        if f._type.param_types[i] != self.type_of(arg) {
+                            self.diagnostics.report(format!(
+                                "type mismatch in argument {}. expected {}, but {} given",
+                                i.to_string().green(),
+                                format!("{:?}", f._type.param_types[i]).green(),
+                                format!("{:?}", self.type_of(arg)).red()
+                            ));
+                        }
+                    }
+                    CheckedExpression::Call { name, function: f._type.clone(), arguments }
+                }
+                None => {
+                    self.diagnostics.report(format!(
+                        "function {} called at ({},{}) is not defined",
+                        name.text.red(),
+                        name.line_num.to_string().red(),
+                        name.column_num.to_string().red()
+                    ));
+                    CheckedExpression::Literal { value: ConstExpr::None }
+                }
+            }
         }
     }
 
@@ -320,7 +375,10 @@ impl StaticAnalyzer {
                             Some(s) => s.r#type,
                             None => {
                                 self.diagnostics.report(
-                                    format!("{} at ({},{}) is not defined", identifier.text.red(), identifier.line_num.to_string().red(), identifier.column_num.to_string().red())
+                                    format!("{} at ({},{}) is not defined",
+                                            identifier.text.red(),
+                                            identifier.line_num.to_string().red(),
+                                            identifier.column_num.to_string().red())
                                 );
                                 RawType::None
                             }
@@ -338,7 +396,11 @@ impl StaticAnalyzer {
                 todo!("get fun and return the type of the fun")
             }
             CheckedExpression::Call { name, function: function_obj, arguments } => {
-                todo!("get fun and return the type of the fun call")
+                if let Some(fun) = self.scope.get_global_function(&name.text) {
+                    *fun._type.return_type
+                } else {
+                    RawType::None
+                }
             }
             CheckedExpression::CallBuiltIn { name, arguments } => {
                 RawType::None

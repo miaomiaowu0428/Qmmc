@@ -45,12 +45,10 @@ impl CompileTimeScope {
     pub fn get_global(&self, name: &str) -> Option<VariableSymbol> {
         if let Some(v) = self.get_local(name) {
             Some(v)
+        } else if let Some(parent) = &self.parent {
+            parent.get_global(name)
         } else {
-            if let Some(parent) = &self.parent {
-                parent.get_global(name)
-            } else {
-                None
-            }
+            None
         }
     }
 
@@ -65,12 +63,28 @@ impl CompileTimeScope {
     }
 
     pub fn declare_function(&self, name: &str, function: FunctionDeclare) {
-        let mut values = self.functions.borrow_mut();
-        if values.contains_key(name) {
-            // self.diagnostics.report_function_already_declared(name);
+        let mut functions = self.functions.borrow_mut();
+        if functions.contains_key(name) {
+            println!("{}",
+                     format!("Function {} already declared", name).as_str()
+            )
         } else {
-            values.insert(name.to_string(), function);
+            functions.insert(name.to_string(), function);
         }
+    }
+    pub fn get_global_function(&self, name: &str) -> Option<FunctionDeclare> {
+        if let Some(fun) = self.get_local_function(name) {
+            Some(fun)
+        } else if let Some(parent) = &self.parent {
+            parent.get_global_function(name)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_local_function(&self, name: &str) -> Option<FunctionDeclare> {
+        let functions = self.functions.borrow();
+        functions.get(name).cloned()
     }
 
 

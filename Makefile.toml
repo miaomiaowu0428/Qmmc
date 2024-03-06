@@ -1,3 +1,9 @@
-[tasks.watch]
+[tasks.run]
 command = "cargo"
 args = ["watch", "-i", "res/*", "-s", "clear && cargo run"]
+
+[tasks.tokei]
+command = "cargo"
+args = ["watch", "-i", "res/*", "-s", "clear && tokei"]
+
+

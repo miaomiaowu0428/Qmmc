@@ -170,11 +170,23 @@ lazy_static! {
             right_type: RawType::F32,
             res_type: RawType::Bool,
         },
+        BinaryOperator{
+            operator_type: BinaryOperatorType::Equals,
+            left_type: RawType::Bool,
+            right_type: RawType::Bool,
+            res_type: RawType::Bool,
+        },
+        BinaryOperator{
+            operator_type: BinaryOperatorType::NotEquals,
+            left_type: RawType::Bool,
+            right_type: RawType::Bool,
+            res_type: RawType::Bool,
+        },
     ];
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Copy)]
 pub struct BinaryOperator {
     pub operator_type: BinaryOperatorType,
     pub left_type: RawType,
@@ -193,7 +205,7 @@ impl BinaryOperator {
 }
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq,Copy)]
 pub enum BinaryOperatorType {
     Addition,
     Subtraction,

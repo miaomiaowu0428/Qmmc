@@ -67,12 +67,7 @@ impl Lexer {
             } else if c.is_alphabetic() || *c == '_' {
                 self.lex_keyword_or_identifier()
             } else if c.is_whitespace() {
-                let white_space = self.lex_white_spase();
-                if white_space.text.contains('\n') {
-                    *self.line_number.borrow_mut() += 1;
-                    *self.column_number.borrow_mut() = 1;
-                }
-                white_space
+                self.lex_white_spase()
             } else {
                 self.lex_operator()
             };
@@ -95,6 +90,7 @@ impl Lexer {
         Token::new(token_type, text, self.line_number(), self.column_number())
     }
     fn lex_keyword_or_identifier(&self) -> Token {
+        let (start_line,start_column) = (self.line_number(),self.column_number());
         let text = self.lex_while(|c| c.is_alphanumeric() || c == '_');
         let token_type = match text.as_str() {
             "and" => AndKeyword,
@@ -113,7 +109,7 @@ impl Lexer {
             "return" => ReturnKeyword,
             _ => IdentifierToken,
         };
-        Token::new(token_type, text, self.line_number(), self.column_number())
+        Token::new(token_type, text, start_line, start_column)
     }
     fn lex_operator(&self) -> Token {
         match self.current().unwrap() {
@@ -220,6 +216,10 @@ impl Lexer {
 
     fn move_next(&self) -> &char {
         let c = self.current().unwrap();
+        if *c == '\n' {
+            *self.line_number.borrow_mut() += 1;
+            *self.column_number.borrow_mut() = 0;
+        }
         *self.pos.borrow_mut() += 1;
         *self.column_number.borrow_mut() += 1;
         c

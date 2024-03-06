@@ -9,7 +9,6 @@ use std::process::Command;
 
 use colored::Colorize;
 use inkwell::context::Context;
-use inkwell::OptimizationLevel;
 
 pub use crate::analyze::lex::Lexer;
 use crate::analyze::syntax_tree::Expression;
@@ -66,7 +65,7 @@ fn main() {
         let context = Context::create();
         let module = context.create_module(FILE_NAME);
         let builder = context.create_builder();
-        let execution_engine = module.create_jit_execution_engine(OptimizationLevel::None).unwrap();
+        let execution_engine = module.create_execution_engine().unwrap();
         let ir_builder = IRBuilder::new(&context, module, builder, execution_engine);
 
         ir_builder.build_irs(checked_expressions);
@@ -77,23 +76,22 @@ fn main() {
         {
             let RES_FILE = &*format!("{}{}", RES_PATH, FILE_NAME);
 
-            let test_path = format!("{}{}", RES_FILE, ".ll");
-            ir_builder.save_as(&test_path);
-
             let llc_source = format!("{}{}", RES_FILE, ".ll");
+            ir_builder.save_as(&llc_source);
+
             let llc_output = Command::new("llc")
-                .arg(llc_source)
+                .arg(llc_source.clone())
                 .output()
                 .expect("Failed to execute llc command");
 
+            let clang_source = format!("{}{}", RES_FILE, ".s");
+
             if llc_output.status.success() {
-                println!("{}", "successfully compiled to .ll".green());
+                println!("{}", format!("{:<28}{}", "successfully compiled to: ".green(), clang_source.as_str().green()));
             } else {
                 eprintln!("llc command failed: {}", String::from_utf8_lossy(&llc_output.stderr));
             }
 
-
-            let clang_source = format!("{}{}", RES_FILE, ".s");
             let clang_output = Command::new("clang")
                 .arg(clang_source)
                 .arg("-o")
@@ -102,7 +100,7 @@ fn main() {
                 .expect("Failed to execute clang command");
 
             if clang_output.status.success() {
-                println!("{}", "successfully compiled to .s".green());
+                println!("{}", format!("{:<28}{}", "successfully compiled to: ".green(), RES_FILE.green()));
             } else {
                 eprintln!("clang command failed: {}", String::from_utf8_lossy(&clang_output.stderr));
             }
