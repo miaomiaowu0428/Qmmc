@@ -11,8 +11,8 @@ use colored::Colorize;
 use inkwell::context::Context;
 
 pub use crate::analyze::lex::Lexer;
-use crate::analyze::syntax_tree::Expression;
-pub use crate::analyze::syntax_tree::Parser;
+use crate::analyze::parse::Expression;
+pub use crate::analyze::parse::Parser;
 use crate::compile::{CheckedExpression, StaticAnalyzer};
 use crate::IR_building::IRBuilder;
 
@@ -119,7 +119,7 @@ fn main() {
 fn show_input(expressions: &Vec<Expression>) {
     println!("Input Expressions: ");
     for expression in expressions {
-        println!("{}", expression)
+        println!("{:#?}", expression)
     }
     println!("==============================");
 }

@@ -8,7 +8,7 @@ use TokenType::VarKeyword;
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::{Token, TokenType};
-use crate::analyze::syntax_tree::{Block, Expression, IdentifierTypePair};
+use crate::analyze::parse::{Block, Expression, IdentifierTypePair};
 use crate::compile::{FunctionDeclare, RawType};
 use crate::compile::binary_operator::BinaryOperator;
 use crate::compile::checked_expression::{CheckedExpression, ConstExpr};
@@ -147,7 +147,7 @@ impl StaticAnalyzer {
     }
 
     fn check_block(&self, block: Block) -> CheckedExpression {
-        let crate::analyze::syntax_tree::Block { expressions } = block;
+        let crate::analyze::parse::Block { expressions } = block;
         let expressions = expressions.borrow().iter().map(|e| self.check_expression(e.clone())).collect();
         CheckedExpression::Block { expressions }
     }
@@ -235,13 +235,28 @@ impl StaticAnalyzer {
                                   body: Box<Expression>
     ) -> CheckedExpression {
         let parameter_types: Vec<RawType> = params.iter().map(|p| self.check_expression(p.clone().type_description)).map(|p| self.type_of(&p)).collect();
+        let checked_res_type = self.check_expression(*res_type_description);
+
+
+        //先把自己的声明添加到现在的scope里
+        //为了避免递归调用时找不到自己的声明, 先声明一个空的函数
+        //之后应该还是要处理成先把所有的函数都声明, 然后再处理函数体
+        // todo!();
+        self.scope.declare_function(&identifier.text, FunctionDeclare {
+            _type: FunctionType {
+                param_types: parameter_types.clone(),
+                return_type: Box::from(self.type_of(&checked_res_type))
+            },
+            param_names: params.iter().map(|p| p.name.text.clone()).collect(),
+            body: CheckedExpression::Literal { value: ConstExpr::None }
+        });
+
 
 
         let child_scope = self.new_child();
         for (i, param) in params.iter().enumerate() {
             child_scope.scope.set_local(&param.name.text, VariableSymbol::new_mut(parameter_types[i].clone()));
         }
-        let checked_res_type = self.check_expression(*res_type_description);
         let checked_body = child_scope.check_function_body(&*identifier.text, body, child_scope.type_of(&checked_res_type));
         self.diagnostics.append(child_scope.diagnostics.clone());
 

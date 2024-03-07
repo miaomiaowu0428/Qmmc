@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Display};
 
 use crate::analyze::lex::Token;
-use crate::analyze::syntax_tree::Expression;
+use crate::analyze::parse::Expression;
 
 #[derive(Debug, Clone)]
 pub struct Block {

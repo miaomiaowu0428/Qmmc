@@ -64,13 +64,13 @@ impl CompileTimeScope {
 
     pub fn declare_function(&self, name: &str, function: FunctionDeclare) {
         let mut functions = self.functions.borrow_mut();
-        if functions.contains_key(name) {
-            println!("{}",
-                     format!("Function {} already declared", name).as_str()
-            )
-        } else {
+        // if functions.contains_key(name) {
+        //     println!("{}",
+        //              format!("Function {} already declared", name).as_str()
+        //     )
+        // } else {
             functions.insert(name.to_string(), function);
-        }
+        // }
     }
     pub fn get_global_function(&self, name: &str) -> Option<FunctionDeclare> {
         if let Some(fun) = self.get_local_function(name) {

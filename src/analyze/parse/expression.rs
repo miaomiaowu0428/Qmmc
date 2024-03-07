@@ -11,10 +11,10 @@ use Expression::Statement;
 use Expression::UnaryExpression;
 
 use crate::analyze::lex::token::Token;
-use crate::analyze::syntax_tree::block::Block;
-use crate::analyze::syntax_tree::Expression::{BreakExpression, VarDeclarationExpression, FunctionDeclarationExpression, FunctionTypeExpression, LoopExpression, ReturnExpression};
-use crate::analyze::syntax_tree::Expression::IfExpression;
-use crate::analyze::syntax_tree::Expression::WhileExpression;
+use crate::analyze::parse::block::Block;
+use crate::analyze::parse::Expression::{BreakExpression, VarDeclarationExpression, FunctionDeclarationExpression, FunctionTypeExpression, LoopExpression, ReturnExpression};
+use crate::analyze::parse::Expression::IfExpression;
+use crate::analyze::parse::Expression::WhileExpression;
 
 #[derive(Debug, Clone)]
 pub enum Expression {

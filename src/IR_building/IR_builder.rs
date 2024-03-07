@@ -12,7 +12,7 @@ use inkwell::values::FunctionValue;
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::Token;
-use crate::compile::{BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, RawType, UnaryOperatorType};
+use crate::compile::{BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, FunctionType, RawType, UnaryOperatorType};
 use crate::IR_building::loop_info::{LoopGuard, LoopStack};
 use crate::IR_building::symbol_table::{ScopeGuard, SymbolTable};
 
@@ -22,7 +22,7 @@ pub struct IRBuilder<'ctx> {
     builder: Builder<'ctx>,
     current_function: RefCell<Option<FunctionValue<'ctx>>>,
     symbol_table: SymbolTable<'ctx>,
-    loop_stack:LoopStack<'ctx>,
+    loop_stack: LoopStack<'ctx>,
     pub(crate) diagnostics: DiagnosticBag,
 }
 
@@ -46,7 +46,7 @@ impl<'ctx> IRBuilder<'ctx> {
     pub fn save_as(&self, path: &str) {
         let path = std::path::Path::new(path);
         match self.module.print_to_file(&path) {
-            Ok(_) => println!("{}", format!("{}: {}", "Successfully wrote to file", path.display()).green()),
+            Ok(_) => println!("{}", format!("{:<26}: {}", "Successfully compiled to", path.display()).green()),
             Err(e) => self.diagnostics.report(format!("Failed to write to file: {}", e.to_string())),
         }
     }
@@ -115,6 +115,9 @@ impl<'ctx> IRBuilder<'ctx> {
             CheckedExpression::Continue => {
                 let body_block = self.loop_stack.top().unwrap().body_block;
                 self.builder.build_unconditional_branch(body_block).expect("build unconditional branch failed");
+            }
+            CheckedExpression::Call { name, function, arguments } => {
+                self.value_of_call(name, function, arguments);
             }
 
             _ => todo!("\n{}{:#?}", "cannot build instruction from Expression not implemented: \n".red(), expression)
@@ -349,33 +352,42 @@ impl<'ctx> IRBuilder<'ctx> {
                         let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
                         Some(Box::from(self.builder.build_int_signed_div(l, r, "div").expect("build i32 division failed")))
                     }
+                    (RawType::I32, BinaryOperatorType::LessThan, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_compare(IntPredicate::SLT, l, r, "sub").expect("build i32 subtraction failed")))
+                    }
                     _ => todo!("{}: {:?} {:#?} {:?}", "Binary operator not implemented for ".red(), op.left_type, op, op.right_type)
                 }
             }// end of Binary
             CheckedExpression::Call { name, function, arguments } => {
-                let mut args = Vec::new();
-                for arg in arguments.iter() {
-                    args.push(BasicMetadataValueEnum::try_from(self.build_basic_value(arg.clone()).unwrap().as_any_value_enum()).unwrap());
-                }
-
-                let res_name = format!("{}{}", "res_", &name.text);
-                match self.module.get_function(&name.text) {
-                    Some(func) => {
-                        let res = self.builder.build_call(func, &args, &*res_name).expect(&*format!("Build Call of {} failed", &name.text));
-                        let res = res.try_as_basic_value().left().unwrap();
-                        Some(Box::from(res))
-                    },
-                    None => {
-                        self.diagnostics.report(format!("Function {} not found", &name.text));
-                        None
-                    }
-                }
+                self.value_of_call(name, function, arguments)
             }
             CheckedExpression::If { condition, then, r#else } => {
                 self.build_if(self.current_function.borrow().unwrap(), CheckedExpression::If { condition, then, r#else });
                 None
             }
             _ => todo!("{}: {:#?}", "cannot build basic value from Expression: \n".red(), expression)
+        }
+    }
+
+    fn value_of_call(&self, name: Token, function: FunctionType, arguments: Vec<CheckedExpression>) -> Option<Box<dyn BasicValue + '_>> {
+        let mut args = Vec::new();
+        for arg in arguments.iter() {
+            args.push(BasicMetadataValueEnum::try_from(self.build_basic_value(arg.clone()).unwrap().as_any_value_enum()).unwrap());
+        }
+
+        let res_name = format!("{}{}", "res_", &name.text);
+        match self.module.get_function(&name.text) {
+            Some(func) => {
+                let res = self.builder.build_call(func, &args, &*res_name).expect(&*format!("Build Call of {} failed", &name.text));
+                let res = res.try_as_basic_value().left().unwrap();
+                Some(Box::from(res))
+            },
+            None => {
+                self.diagnostics.report(format!("Function {} not found", &name.text));
+                None
+            }
         }
     }
 

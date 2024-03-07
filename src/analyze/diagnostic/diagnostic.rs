@@ -6,7 +6,7 @@ use colored::Colorize;
 use TokenType::{FloatPointToken, IntegerToken};
 
 use crate::analyze::lex::token::{Token, TokenType};
-use crate::analyze::syntax_tree::Expression;
+use crate::analyze::parse::Expression;
 use crate::runtime::RuntimeType;
 
 #[derive(Debug, Clone)]

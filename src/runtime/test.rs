@@ -23,8 +23,8 @@
 //             .expect("Could not read file");
 //         let lexer = Lexer::new(&contents);
 //         let source_file = lexer.lex();
-//         let syntax_tree = Parser::new(source_file);
-//         let expressions = syntax_tree.parse();
+//         let parse = Parser::new(source_file);
+//         let expressions = parse.parse();
 //         let evaluator = Runtime::new();
 //         let res = evaluator.evaluate(expressions.clone());
 
@@ -42,8 +42,8 @@
 //             .expect("Could not read file");
 //         let lexer = Lexer::new(&contents);
 //         let source_file = lexer.lex();
-//         let syntax_tree = Parser::new(source_file);
-//         let expressions = syntax_tree.parse();
+//         let parse = Parser::new(source_file);
+//         let expressions = parse.parse();
 //         let evaluator = Runtime::new();
 //         let res = evaluator.evaluate(expressions.clone());
 
@@ -68,8 +68,8 @@
 //             .expect("Could not read file");
 //         let lexer = Lexer::new(&contents);
 //         let source_file = lexer.lex();
-//         let syntax_tree = Parser::new(source_file);
-//         let expressions = syntax_tree.parse();
+//         let parse = Parser::new(source_file);
+//         let expressions = parse.parse();
 //         let evaluator = Runtime::new();
 //         let res = evaluator.evaluate(expressions.clone());
 
