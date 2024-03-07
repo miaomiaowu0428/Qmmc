@@ -26,7 +26,7 @@ pub enum CheckedExpression {
         expressions: Vec<CheckedExpression>,
     },
     Identifier {
-        identifier: Token,
+        name: Token,
     },
     VarDeclare {
         name: Token,

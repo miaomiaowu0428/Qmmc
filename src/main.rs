@@ -24,7 +24,7 @@ mod IR_building;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "main_ret_8";
+static FILE_NAME: &str = "first_narcissistic";
 
 fn main() {
     let mut file =
@@ -65,12 +65,11 @@ fn main() {
         let context = Context::create();
         let module = context.create_module(FILE_NAME);
         let builder = context.create_builder();
-        let execution_engine = module.create_execution_engine().unwrap();
-        let ir_builder = IRBuilder::new(&context, module, builder, execution_engine);
+        let ir_builder = IRBuilder::new(&context, module, builder);
 
         ir_builder.build_irs(checked_expressions);
 
-        ir_builder.print_res();
+        // ir_builder.print_res();
 
 
         {
@@ -87,7 +86,7 @@ fn main() {
             let clang_source = format!("{}{}", RES_FILE, ".s");
 
             if llc_output.status.success() {
-                println!("{}", format!("{:<28}{}", "successfully compiled to: ".green(), clang_source.as_str().green()));
+                println!("{}", format!("{:<26}: {}", "successfully compiled to", clang_source).green());
             } else {
                 eprintln!("llc command failed: {}", String::from_utf8_lossy(&llc_output.stderr));
             }
@@ -100,7 +99,7 @@ fn main() {
                 .expect("Failed to execute clang command");
 
             if clang_output.status.success() {
-                println!("{}", format!("{:<28}{}", "successfully compiled to: ".green(), RES_FILE.green()));
+                println!("{}", format!("{:<26}: {}", "successfully compiled to", RES_FILE).green());
             } else {
                 eprintln!("clang command failed: {}", String::from_utf8_lossy(&clang_output.stderr));
             }

@@ -1,0 +1,27 @@
+fun is_narcissistic(n: I32) -> Bool {
+    var temp = n
+    var sum = 0
+    loop {
+        var digit = temp % 10
+        sum = sum + digit * digit * digit
+        temp = temp / 10
+        if (temp == 0) {
+            break
+        }
+    }
+    if (sum == n) {
+        return true
+    }
+    false
+}
+
+fun main() -> I32 {
+    var num = 100
+    while (true) {
+        if (is_narcissistic(num)) {
+            return num
+        }
+        num = num + 1
+    }
+    num
+}

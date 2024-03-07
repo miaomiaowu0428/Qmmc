@@ -1,15 +1,22 @@
-fun ret_bool() -> Bool {
-    1 == 2
+fun ret_8() -> I32 {
+    var a = 0
+    while ( 10 > a ) {
+        a = a + 1
+        if (a == 100) {
+            return a
+        }
+    }
+    a
 }
 
 
-fun main() -> Bool {
+fun main() -> I32 {
     if (true == false) {
-        return false
-    } else if (true == true) {
-        return true
+        return 45
+    } else if (true != true) {
+        return 56
     }
-    ret_bool()
+    ret_8()
 }
 
 

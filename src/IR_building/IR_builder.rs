@@ -3,10 +3,9 @@ use std::cell::RefCell;
 use colored::Colorize;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
-use inkwell::execution_engine::ExecutionEngine;
 use inkwell::IntPredicate;
 use inkwell::module::Module;
-use inkwell::values::BasicMetadataValueEnum;
+use inkwell::values::{BasicMetadataValueEnum, PointerValue};
 use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
 use inkwell::values::FunctionValue;
@@ -14,13 +13,16 @@ use inkwell::values::FunctionValue;
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::Token;
 use crate::compile::{BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, RawType, UnaryOperatorType};
+use crate::IR_building::loop_info::{LoopGuard, LoopStack};
+use crate::IR_building::symbol_table::{ScopeGuard, SymbolTable};
 
 pub struct IRBuilder<'ctx> {
     context: &'ctx Context,
     module: Module<'ctx>,
     builder: Builder<'ctx>,
-    execution_engine: ExecutionEngine<'ctx>,
     current_function: RefCell<Option<FunctionValue<'ctx>>>,
+    symbol_table: SymbolTable<'ctx>,
+    loop_stack:LoopStack<'ctx>,
     pub(crate) diagnostics: DiagnosticBag,
 }
 
@@ -29,14 +31,14 @@ impl<'ctx> IRBuilder<'ctx> {
         context: &'ctx Context,
         module: Module<'ctx>,
         builder: Builder<'ctx>,
-        execution_engine: ExecutionEngine<'ctx>
     ) -> IRBuilder<'ctx> {
         IRBuilder {
             context,
             module,
             builder,
-            execution_engine,
             current_function: RefCell::new(None),
+            symbol_table: SymbolTable::new(),
+            loop_stack: LoopStack::new(),
             diagnostics: DiagnosticBag::new(),
         }
     }
@@ -44,7 +46,7 @@ impl<'ctx> IRBuilder<'ctx> {
     pub fn save_as(&self, path: &str) {
         let path = std::path::Path::new(path);
         match self.module.print_to_file(&path) {
-            Ok(_) => println!("{}",format!("{}: {}","Successfully wrote to file".green(), path.display()).green()),
+            Ok(_) => println!("{}", format!("{}: {}", "Successfully wrote to file", path.display()).green()),
             Err(e) => self.diagnostics.report(format!("Failed to write to file: {}", e.to_string())),
         }
     }
@@ -90,6 +92,30 @@ impl<'ctx> IRBuilder<'ctx> {
             CheckedExpression::If { condition, then, r#else } => {
                 self.build_if(self.current_function.borrow().unwrap(), CheckedExpression::If { condition, then, r#else });
             }
+            CheckedExpression::VarDeclare { name, init_expr } => {
+                let var = self.builder.build_alloca(self.context.i32_type(), &name.text).expect("build alloc failed");
+                self.symbol_table.insert(name.text.clone(), var);
+                self.builder.build_store(var, self.build_basic_value(*init_expr).unwrap().as_basic_value_enum().into_int_value()).expect("build store failed");
+            }
+            CheckedExpression::Assignment { identifier: name, expression } => {
+                let var = self.symbol_table.get(&name.text).unwrap();
+                let res = self.build_basic_value(*expression).unwrap().as_basic_value_enum().into_int_value();
+                self.builder.build_store(var, res).expect("build store failed");
+            }
+            CheckedExpression::While { condition, body } => {
+                self.build_while(self.current_function.borrow().unwrap(), condition, body);
+            }
+            CheckedExpression::Loop { body } => {
+                self.build_loop(*body);
+            }
+            CheckedExpression::Break => {
+                let merge_block = self.loop_stack.top().unwrap().merge_block;
+                self.builder.build_unconditional_branch(merge_block).expect("build unconditional branch failed");
+            }
+            CheckedExpression::Continue => {
+                let body_block = self.loop_stack.top().unwrap().body_block;
+                self.builder.build_unconditional_branch(body_block).expect("build unconditional branch failed");
+            }
 
             _ => todo!("\n{}{:#?}", "cannot build instruction from Expression not implemented: \n".red(), expression)
         }
@@ -97,10 +123,53 @@ impl<'ctx> IRBuilder<'ctx> {
         // println!("Current Block: {:#?}", self.builder.get_insert_block());
     }
 
+    fn build_loop(&self, body: CheckedExpression) {
+        if let CheckedExpression::Block { expressions } = body {
+            let _guard = ScopeGuard::new(&self.symbol_table);
+
+            let loop_block = self.context.append_basic_block(self.current_function.borrow().unwrap(), "loop");
+            let merge_block = self.context.append_basic_block(self.current_function.borrow().unwrap(), "merge");
+
+            let _guard = LoopGuard::new(&self.loop_stack, merge_block, loop_block);
+
+            self.builder.build_unconditional_branch(loop_block).expect("build unconditional branch failed");
+
+            self.builder.position_at_end(loop_block);
+            for e in expressions {
+                self.build_ir(e);
+            }
+            self.builder.build_unconditional_branch(loop_block).expect("build unconditional branch failed");
+
+            self.builder.position_at_end(merge_block);
+        }
+    }
+
+    fn build_while(&self, function_value: FunctionValue<'ctx>, condition: Box<CheckedExpression>, body: Box<CheckedExpression>) {
+        let _guard = ScopeGuard::new(&self.symbol_table);
+
+        let condition_block = self.context.append_basic_block(function_value, "condition");
+        let body_block = self.context.append_basic_block(function_value, "body");
+        let merge_block = self.context.append_basic_block(function_value, "merge");
+
+        let _guard = LoopGuard::new(&self.loop_stack, merge_block, body_block);
+
+        self.builder.build_unconditional_branch(condition_block).expect("build unconditional branch failed");
+
+        self.builder.position_at_end(condition_block);
+        let condition = self.build_basic_value(*condition).unwrap().as_basic_value_enum().into_int_value();
+        self.builder.build_conditional_branch(condition, body_block, merge_block).expect("build conditional branch failed");
+
+        self.builder.position_at_end(body_block);
+        self.build_ir(*body);
+        self.builder.build_unconditional_branch(condition_block).expect("build unconditional branch failed");
+
+        self.builder.position_at_end(merge_block);
+    }
+
     fn build_function_declare(&self, name: Token, function: FunctionDeclare) {
         let LLVM_function_type = {
             let mut types = vec![];
-            for param in function._type.param_types {
+            for param in function._type.param_types.clone() {
                 match param {
                     RawType::I32 => types.push(self.context.i32_type().into()),
                     RawType::F32 => types.push(self.context.f32_type().into()),
@@ -122,15 +191,55 @@ impl<'ctx> IRBuilder<'ctx> {
 
         let basic_block = self.context.append_basic_block(LLVM_function_OBJ, "entry");
         self.builder.position_at_end(basic_block);
-        self.build_func_body(function.body);
+        self.build_func_body(function);
     }
 
+
+    fn build_func_body(&self, function_declare: FunctionDeclare) {
+        let _guard = ScopeGuard::new(&self.symbol_table);
+
+        for (i, param) in function_declare.param_names.iter().enumerate() {
+            let arg = self.current_function.borrow().unwrap().get_nth_param(i as u32).unwrap();
+            arg.set_name(&param);
+            let alloca = match function_declare._type.param_types[i] {
+                RawType::I32 => self.builder.build_alloca(self.context.i32_type(), &param),
+                RawType::F32 => self.builder.build_alloca(self.context.f32_type(), &param),
+                RawType::Bool => self.builder.build_alloca(self.context.bool_type(), &param),
+                T => todo!("{}", format!("{}{:#?}{}", "cannot convert", T, " to function type").red())
+            }.unwrap();
+            self.builder.build_store(alloca, arg).expect("build store failed");
+            self.symbol_table.insert(param.clone(), alloca);
+        }
+
+        let body = function_declare.body;
+
+        if let CheckedExpression::Block { expressions } = body {
+            for e in expressions.iter().take(expressions.len() - 1) {
+                self.build_ir(e.clone())
+            }
+            if let Some(last) = expressions.last() {
+                match last {
+                    CheckedExpression::Return { expression } => {
+                        self.builder.build_return(self.build_basic_value(*expression.clone()).as_deref()).unwrap();
+                    }
+                    CheckedExpression::If { condition, then, r#else } => {
+                        self.build_if(self.current_function.borrow().unwrap(), last.clone());
+                    }
+                    _ => { self.builder.build_return(self.build_basic_value(last.clone()).as_deref()).unwrap(); }
+                }
+            }
+        } else { self.diagnostics.report("Function body must be a block".to_string()); }
+    }
 
     fn build_basic_value(&self, expression: CheckedExpression) -> Option<Box<dyn BasicValue + '_>> {
         match expression {
             CheckedExpression::Statement { expression } => {
                 self.build_ir(*expression);
                 None
+            }
+            CheckedExpression::Identifier { name } => {
+                let var = self.symbol_table.get(&name.text).unwrap();
+                Some(Box::from(self.builder.build_load(PointerValue::try_from(var).unwrap(), &name.text).expect("build load failed")))
             }
             CheckedExpression::Literal { value } => match value {
                 ConstExpr::I32(i) => {
@@ -215,6 +324,31 @@ impl<'ctx> IRBuilder<'ctx> {
                         let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
                         Some(Box::from(self.builder.build_int_compare(IntPredicate::SGT, l, r, "sub").expect("build i32 subtraction failed")))
                     }
+                    (RawType::I32, BinaryOperatorType::NotEquals, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_compare(IntPredicate::NE, l, r, "sub").expect("build i32 subtraction failed")))
+                    }
+                    (RawType::I32, BinaryOperatorType::Remainder, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_signed_rem(l, r, "sub").expect("build i32 subtraction failed")))
+                    }
+                    (RawType::I32, BinaryOperatorType::Subtraction, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_sub(l, r, "sub").expect("build i32 subtraction failed")))
+                    }
+                    (RawType::I32, BinaryOperatorType::Multiplication, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_mul(l, r, "mul").expect("build i32 multiplication failed")))
+                    }
+                    (RawType::I32, BinaryOperatorType::Division, RawType::I32) => {
+                        let l = self.build_basic_value(*left).unwrap().as_basic_value_enum().into_int_value();
+                        let r = self.build_basic_value(*right).unwrap().as_basic_value_enum().into_int_value();
+                        Some(Box::from(self.builder.build_int_signed_div(l, r, "div").expect("build i32 division failed")))
+                    }
                     _ => todo!("{}: {:?} {:#?} {:?}", "Binary operator not implemented for ".red(), op.left_type, op, op.right_type)
                 }
             }// end of Binary
@@ -267,30 +401,6 @@ impl<'ctx> IRBuilder<'ctx> {
 
             self.builder.position_at_end(merge_block);
         }
-    }
-
-    fn build_func_body(&self, body: CheckedExpression) {
-        if let CheckedExpression::Block { expressions } = body {
-            for e in expressions.iter().take(expressions.len() - 1) {
-                match e {
-                    CheckedExpression::If { condition, then, r#else } => {
-                        self.build_if(self.current_function.borrow().unwrap(), e.clone());
-                    }
-                    _ => { self.build_ir(e.clone()); }
-                }
-            }
-            if let Some(last) = expressions.last() {
-                match last {
-                    CheckedExpression::Return { expression } => {
-                        self.builder.build_return(self.build_basic_value(*expression.clone()).as_deref()).unwrap();
-                    }
-                    CheckedExpression::If { condition, then, r#else } => {
-                        self.build_if(self.current_function.borrow().unwrap(), last.clone());
-                    }
-                    _ => { self.builder.build_return(self.build_basic_value(last.clone()).as_deref()).unwrap(); }
-                }
-            }
-        } else { self.diagnostics.report("Function body must be a block".to_string()); }
     }
     fn build_block(&self, expressions: Vec<CheckedExpression>) {
         for e in expressions {

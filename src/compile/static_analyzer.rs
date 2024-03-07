@@ -207,7 +207,7 @@ impl StaticAnalyzer {
             Some(s) => s.r#type,
             None => RawType::None,
         };
-        CheckedExpression::Identifier { identifier }
+        CheckedExpression::Identifier { name: identifier }
     }
 
 
@@ -366,7 +366,7 @@ impl StaticAnalyzer {
             CheckedExpression::Unary { op, .. } => op.res_type.clone(),
             CheckedExpression::Binary { op, .. } => op.res_type.clone(),
             CheckedExpression::Block { expressions } => expressions.last().map(|e| self.type_of(e)).unwrap_or(RawType::None),
-            CheckedExpression::Identifier { identifier } => {
+            CheckedExpression::Identifier { name: identifier } => {
                 match self.check_base_type(&identifier.text) {
                     Some(t) => t,
                     None => {
