@@ -36,10 +36,23 @@ pub enum CheckedExpression {
         identifier: Token,
         expression: Box<CheckedExpression>,
     },
-    If {
+    Conditional {
         condition: Box<CheckedExpression>,
         then: Box<CheckedExpression>,
+        else_ifs: Vec<CheckedExpression>,
+        else_expr: Option<Box<CheckedExpression>>,
+    },
+    If {
+        condition: Box<CheckedExpression>,
+        body: Box<CheckedExpression>,
         r#else: Option<Box<CheckedExpression>>,
+    },
+    ElseIf {
+        condition: Box<CheckedExpression>,
+        body: Box<CheckedExpression>,
+    },
+    Else {
+        body: Box<CheckedExpression>,
     },
     Loop {
         body: Box<CheckedExpression>,
@@ -96,7 +109,6 @@ pub enum CheckedExpression {
 //     }
 // }
 
-
 #[derive(Debug, Clone)]
 pub struct Parameter {
     pub(crate) name: Token,
@@ -108,7 +120,6 @@ impl PartialEq for Parameter {
         self.name.text == other.name.text && self.r#type == other.r#type
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub enum ConstExpr {
@@ -125,7 +136,7 @@ impl From<Token> for ConstExpr {
             FloatPointToken => ConstExpr::F32(value.text.parse().unwrap()),
             TrueKeyword => ConstExpr::Bool(true),
             FalseKeyword => ConstExpr::Bool(false),
-            _ => panic!("Invalid literal token type")
+            _ => panic!("Invalid literal token type"),
         }
     }
 }

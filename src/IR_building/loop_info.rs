@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use inkwell::basic_block::BasicBlock;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
 pub struct LoopInfo<'ctx> {
@@ -31,8 +31,15 @@ pub struct LoopGuard<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> LoopGuard<'a, 'ctx> {
-    pub fn new(loop_stack: &'a LoopStack<'ctx>, merge_block: BasicBlock<'ctx>, body_block: BasicBlock<'ctx>) -> Self {
-        loop_stack.push(LoopInfo { merge_block, body_block });
+    pub fn new(
+        loop_stack: &'a LoopStack<'ctx>,
+        merge_block: BasicBlock<'ctx>,
+        body_block: BasicBlock<'ctx>,
+    ) -> Self {
+        loop_stack.push(LoopInfo {
+            merge_block,
+            body_block,
+        });
         Self { loop_stack }
     }
 }
@@ -42,11 +49,3 @@ impl<'a, 'ctx> Drop for LoopGuard<'a, 'ctx> {
         self.loop_stack.pop();
     }
 }
-
-
-
-
-
-
-
-

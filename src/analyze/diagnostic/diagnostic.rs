@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::cell::RefCell;
 use colored::Colorize;
+use std::cell::RefCell;
 
 use TokenType::{FloatPointToken, IntegerToken};
 
@@ -14,13 +14,11 @@ pub struct DiagnosticBag {
     pub diagnostics: RefCell<Vec<Diagnostic>>,
 }
 
-
 impl DiagnosticBag {
     pub(crate) fn clear(&self) {
         self.diagnostics.borrow_mut().clear();
     }
 }
-
 
 impl DiagnosticBag {
     pub fn new() -> Self {
@@ -30,7 +28,9 @@ impl DiagnosticBag {
     }
 
     pub(crate) fn append(&self, p0: DiagnosticBag) {
-        self.diagnostics.borrow_mut().append(&mut p0.diagnostics.borrow_mut());
+        self.diagnostics
+            .borrow_mut()
+            .append(&mut p0.diagnostics.borrow_mut());
     }
 
     pub(crate) fn report_invalid_literal(&self, token: Token) {
@@ -51,10 +51,14 @@ impl DiagnosticBag {
         let message = format!("Assignment to immutable variable '{}' because it's declared with 'val'. consider change it to var", token.to_string().red());
         let line_num = expression.to_token_vec().first().unwrap().line_num;
         let column_num = expression.to_token_vec().first().unwrap().column_num;
-        let message = format!("{message}\n> variable {token} declared here: ({line_num},{column_num}) {}", expression
-            .to_token_vec().iter()
-            .map(|t| format!("{} ", t.to_string()))
-            .collect::<String>());
+        let message = format!(
+            "{message}\n> variable {token} declared here: ({line_num},{column_num}) {}",
+            expression
+                .to_token_vec()
+                .iter()
+                .map(|t| format!("{} ", t.to_string()))
+                .collect::<String>()
+        );
         self.report(message);
     }
     pub fn report(&self, message: String) {
@@ -75,23 +79,51 @@ impl DiagnosticBag {
         self.report(message);
     }
 
-
-    pub(crate) fn report_argument_type_mismatch(&self, function_name: &str, parameter_name: &str, need: RuntimeType, found: RuntimeType) {
-        let message = format!("parameter {} in function:{} need type {}, but {} is given", parameter_name.red(), function_name.blue(), need.to_string().green(), found.to_string().red());
+    pub(crate) fn report_argument_type_mismatch(
+        &self,
+        function_name: &str,
+        parameter_name: &str,
+        need: RuntimeType,
+        found: RuntimeType,
+    ) {
+        let message = format!(
+            "parameter {} in function:{} need type {}, but {} is given",
+            parameter_name.red(),
+            function_name.blue(),
+            need.to_string().green(),
+            found.to_string().red()
+        );
         self.report(message);
     }
-    pub(crate) fn report_argument_count_mismatch(&self, function_name: &String, need: usize, given: usize) {
-        let message = format!("function {} need {} arguments, but {} is given", function_name.red(), need.to_string().green(), given.to_string().red());
+    pub(crate) fn report_argument_count_mismatch(
+        &self,
+        function_name: &String,
+        need: usize,
+        given: usize,
+    ) {
+        let message = format!(
+            "function {} need {} arguments, but {} is given",
+            function_name.red(),
+            need.to_string().green(),
+            given.to_string().red()
+        );
         self.report(message);
     }
 
-    pub fn report_unexpected_token(&self, tokens_in_the_same_line: Vec<&Token>, token: Token, expected: &Vec<TokenType>, ) {
+    pub fn report_unexpected_token(
+        &self,
+        tokens_in_the_same_line: Vec<&Token>,
+        token: Token,
+        expected: &Vec<TokenType>,
+    ) {
         let line = tokens_in_the_same_line
             .iter()
-            .map(|t| if t.column_num == token.column_num {
-                t.to_string().red().to_string()
-            } else {
-                t.to_string().normal().to_string()
+            .map(|t| {
+                if t.column_num == token.column_num {
+                    t.to_string().red().to_string()
+                } else {
+                    t.to_string().normal().to_string()
+                }
             })
             .collect::<Vec<String>>()
             .join(" ");
@@ -122,21 +154,29 @@ impl DiagnosticBag {
         self.report(msg)
     }
 
-    pub(crate) fn report_invalid_binary_op(&self, left_type: RuntimeType, op_token: Token, right_type: RuntimeType) {
-        let msg = format!("operator {} is not defined for {} and {}",
-                          op_token.text.red(),
-                          left_type.to_string().bright_yellow(),
-                          right_type.to_string().bright_yellow());
+    pub(crate) fn report_invalid_binary_op(
+        &self,
+        left_type: RuntimeType,
+        op_token: Token,
+        right_type: RuntimeType,
+    ) {
+        let msg = format!(
+            "operator {} is not defined for {} and {}",
+            op_token.text.red(),
+            left_type.to_string().bright_yellow(),
+            right_type.to_string().bright_yellow()
+        );
         self.report(msg);
     }
 
     pub(crate) fn report_invalid_unary_op(&self, op_token: Token, operand_type: RuntimeType) {
-        let msg = format!("operator {} is not defined for {}",
-                          op_token.text.red(),
-                          operand_type.to_string().bright_yellow());
+        let msg = format!(
+            "operator {} is not defined for {}",
+            op_token.text.red(),
+            operand_type.to_string().bright_yellow()
+        );
         self.report(msg);
     }
-
 }
 
 #[derive(Debug, Clone)]

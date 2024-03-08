@@ -40,7 +40,6 @@ impl UnaryOperator {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperatorType {
     Positive,

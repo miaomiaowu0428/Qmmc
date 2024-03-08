@@ -4,7 +4,6 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKeyword};
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
@@ -34,8 +33,11 @@ use TokenType::TrueKeyword;
 use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhitespaceToken;
+use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKeyword};
 
-use crate::analyze::lex::TokenType::{ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, ReturnKeyword};
+use crate::analyze::lex::TokenType::{
+    ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, ReturnKeyword,
+};
 
 #[derive(Clone)]
 pub struct Token {
@@ -45,21 +47,14 @@ pub struct Token {
     pub column_num: usize,
 }
 
-
 impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         self.token_type == other.token_type && self.text == other.text
     }
 }
 
-
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        text: String,
-        line_num: usize,
-        column_num: usize,
-    ) -> Self {
+    pub fn new(token_type: TokenType, text: String, line_num: usize, column_num: usize) -> Self {
         Self {
             token_type,
             text,
@@ -89,14 +84,20 @@ impl Debug for Token {
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // write!(f, "{}", self.text)
-        write!(f, "{}",
-               match self.token_type {
-                   IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => format!("{}", self.text.green()),
-                   IdentifierToken => format!("{}", self.text.bold()),
-                   ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword | BreakKeyword | FunKeyword | ReturnKeyword => format!("{}", self.text.bold().yellow()),
+        write!(
+            f,
+            "{}",
+            match self.token_type {
+                IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword =>
+                    format!("{}", self.text.green()),
+                IdentifierToken => format!("{}", self.text.bold()),
+                ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword
+                | BreakKeyword | FunKeyword | ReturnKeyword =>
+                    format!("{}", self.text.bold().yellow()),
 
-                   _ => format!("{}", self.text),
-               })
+                _ => format!("{}", self.text),
+            }
+        )
     }
 }
 
@@ -219,15 +220,14 @@ impl Debug for TokenType {
             ReturnKeyword => "ReturnKeyword",
             ContinueToken => "ContinueToken",
             ColonToken => "ColonToken",
-            ArrowToken => "ArrowToken"
+            ArrowToken => "ArrowToken",
         };
         write!(f, "{}", string)
     }
 }
 
-
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "", )
+        write!(f, "",)
     }
 }

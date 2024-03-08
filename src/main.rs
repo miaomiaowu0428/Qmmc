@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
 use std::fs::File;
 use std::io::Read;
@@ -16,25 +17,24 @@ pub use crate::analyze::parse::Parser;
 use crate::compile::{CheckedExpression, StaticAnalyzer};
 use crate::IR_building::IRBuilder;
 
-mod analyze;
-mod runtime;
-mod compile;
 mod IR_building;
+mod analyze;
+mod compile;
+mod runtime;
 
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "first_narcissistic";
+static FILE_NAME: &str = "test_if_else";
 
 fn main() {
-    let mut file =
-        File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm"))).expect("Could not open file");
+    let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))
+        .expect("Could not open file");
     let mut contents = String::new();
     file.read_to_string(&mut contents)
         .expect("Could not read file");
     let lexer = Lexer::new(&contents);
     let tokens = lexer.lex();
-
 
     let syntax_tree = Parser::new(tokens);
     let expressions = syntax_tree.parse();
@@ -46,7 +46,6 @@ fn main() {
 
     // show_input(&expressions);
 
-
     let static_analyzer = StaticAnalyzer::new();
     let checked_expressions = static_analyzer.analyse(expressions);
 
@@ -54,14 +53,11 @@ fn main() {
 
     // show_static_scope(&static_analyzer);
 
-
     if !static_analyzer.diagnostics.is_empty() {
         println!("Static Analysis Diagnostics: ");
         static_analyzer.diagnostics.print();
         println!("==============================");
     } else {
-        println!("IR:");
-
         let context = Context::create();
         let module = context.create_module(FILE_NAME);
         let builder = context.create_builder();
@@ -69,8 +65,7 @@ fn main() {
 
         ir_builder.build_irs(checked_expressions);
 
-        // ir_builder.print_res();
-
+        // show_ir(&ir_builder);
 
         {
             let RES_FILE = &*format!("{}{}", RES_PATH, FILE_NAME);
@@ -86,9 +81,15 @@ fn main() {
             let clang_source = format!("{}{}", RES_FILE, ".s");
 
             if llc_output.status.success() {
-                println!("{}", format!("{:<26}: {}", "successfully compiled to", clang_source).green());
+                println!(
+                    "{}",
+                    format!("{:<26}: {}", "successfully compiled to", clang_source).green()
+                );
             } else {
-                eprintln!("llc command failed: {}", String::from_utf8_lossy(&llc_output.stderr));
+                eprintln!(
+                    "llc command failed: {}",
+                    String::from_utf8_lossy(&llc_output.stderr)
+                );
             }
 
             let clang_output = Command::new("clang")
@@ -99,9 +100,15 @@ fn main() {
                 .expect("Failed to execute clang command");
 
             if clang_output.status.success() {
-                println!("{}", format!("{:<26}: {}", "successfully compiled to", RES_FILE).green());
+                println!(
+                    "{}",
+                    format!("{:<26}: {}", "successfully compiled to", RES_FILE).green()
+                );
             } else {
-                eprintln!("clang command failed: {}", String::from_utf8_lossy(&clang_output.stderr));
+                eprintln!(
+                    "clang command failed: {}",
+                    String::from_utf8_lossy(&clang_output.stderr)
+                );
             }
 
             let output = Command::new(RES_FILE)
@@ -114,6 +121,11 @@ fn main() {
 
         ir_builder.diagnostics.print();
     }
+}
+
+fn show_ir(ir_builder: &IRBuilder) {
+    println!("IR:");
+    ir_builder.print_res();
 }
 
 fn show_input(expressions: &Vec<Expression>) {

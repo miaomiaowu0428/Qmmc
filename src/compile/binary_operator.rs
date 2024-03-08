@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 
-use TokenType::{AndKeyword, BangEqualsToken, GreatThanToken, OrKeyword};
 use TokenType::EqualsEqualsToken;
 use TokenType::LessThanToken;
 use TokenType::MinusToken;
@@ -8,6 +7,7 @@ use TokenType::PercentToken;
 use TokenType::PlusToken;
 use TokenType::SlashToken;
 use TokenType::StarToken;
+use TokenType::{AndKeyword, BangEqualsToken, GreatThanToken, OrKeyword};
 
 use crate::analyze::lex::TokenType;
 use crate::compile::r#type::RawType;
@@ -170,13 +170,13 @@ lazy_static! {
             right_type: RawType::F32,
             res_type: RawType::Bool,
         },
-        BinaryOperator{
+        BinaryOperator {
             operator_type: BinaryOperatorType::Equals,
             left_type: RawType::Bool,
             right_type: RawType::Bool,
             res_type: RawType::Bool,
         },
-        BinaryOperator{
+        BinaryOperator {
             operator_type: BinaryOperatorType::NotEquals,
             left_type: RawType::Bool,
             right_type: RawType::Bool,
@@ -185,8 +185,7 @@ lazy_static! {
     ];
 }
 
-
-#[derive(Debug, Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct BinaryOperator {
     pub operator_type: BinaryOperatorType,
     pub left_type: RawType,
@@ -199,13 +198,16 @@ impl BinaryOperator {
         let opt = BinaryOperatorType::from(op);
         BINARY_OPERATORS
             .iter()
-            .find(|op| op.operator_type == opt && op.left_type == *left_type && op.right_type == *right_type)
+            .find(|op| {
+                op.operator_type == opt
+                    && op.left_type == *left_type
+                    && op.right_type == *right_type
+            })
             .map(|op| op.clone())
     }
 }
 
-
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum BinaryOperatorType {
     Addition,
     Subtraction,

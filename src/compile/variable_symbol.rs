@@ -1,6 +1,5 @@
 use crate::compile::RawType;
 
-
 #[derive(Debug, Clone)]
 pub struct VariableSymbol {
     pub mutable: bool,
@@ -11,7 +10,7 @@ impl VariableSymbol {
     pub fn new(mutable: bool, r#type: RawType) -> Self {
         Self {
             mutable,
-            initialized:false,
+            initialized: false,
             r#type,
         }
     }
@@ -19,23 +18,22 @@ impl VariableSymbol {
     pub fn new_mut(r#type: RawType) -> Self {
         Self {
             mutable: true,
-            initialized:false,
+            initialized: false,
             r#type,
         }
     }
     pub fn new_immut(r#type: RawType) -> Self {
         Self {
             mutable: false,
-            initialized:false,
+            initialized: false,
             r#type,
         }
     }
 
-
     pub fn init_as(mutable: bool, r#type: RawType) -> Self {
         Self {
             mutable,
-            initialized:true,
+            initialized: true,
             r#type,
         }
     }
@@ -43,16 +41,15 @@ impl VariableSymbol {
     pub fn init_as_mut(r#type: RawType) -> Self {
         Self {
             mutable: true,
-            initialized:true,
+            initialized: true,
             r#type,
         }
     }
     pub fn init_as_immut(r#type: RawType) -> Self {
         Self {
             mutable: false,
-            initialized:true,
+            initialized: true,
             r#type,
         }
     }
 }
-

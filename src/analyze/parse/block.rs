@@ -17,7 +17,6 @@ impl Display for Block {
     }
 }
 
-
 impl Block {
     pub fn new() -> Self {
         Self {
@@ -29,7 +28,11 @@ impl Block {
         self.expressions.borrow_mut().push(expression);
     }
 
-    pub fn format_with_indent(&self, f: &mut std::fmt::Formatter<'_>, indent: i32) -> std::fmt::Result {
+    pub fn format_with_indent(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        indent: i32,
+    ) -> std::fmt::Result {
         Ok(for expr in self.expressions.borrow().iter() {
             expr.format_with_indent(f, indent + 1)?;
             writeln!(f)?;

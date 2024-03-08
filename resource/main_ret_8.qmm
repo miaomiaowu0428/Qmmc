@@ -2,7 +2,7 @@ fun ret_8() -> I32 {
     var a = 0
     while ( 10 > a ) {
         a = a + 1
-        if (a == 100) {
+        if a == 100 {
             return a
         }
     }
@@ -11,9 +11,9 @@ fun ret_8() -> I32 {
 
 
 fun main() -> I32 {
-    if (true == false) {
+    if true == false {
         return 45
-    } else if (true != true) {
+    } else if true != true {
         return 56
     }
     ret_8()

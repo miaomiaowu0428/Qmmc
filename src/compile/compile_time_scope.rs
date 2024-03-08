@@ -15,7 +15,6 @@ pub struct CompileTimeScope {
     pub functions: RefCell<FunctionMap>,
 }
 
-
 impl CompileTimeScope {
     pub fn new_global() -> Self {
         Self {
@@ -52,7 +51,6 @@ impl CompileTimeScope {
         }
     }
 
-
     pub fn declare_variable(&self, name: &str, variable: VariableSymbol) {
         let mut values = self.variables.borrow_mut();
         if values.contains_key(name) {
@@ -69,7 +67,7 @@ impl CompileTimeScope {
         //              format!("Function {} already declared", name).as_str()
         //     )
         // } else {
-            functions.insert(name.to_string(), function);
+        functions.insert(name.to_string(), function);
         // }
     }
     pub fn get_global_function(&self, name: &str) -> Option<FunctionDeclare> {
@@ -87,7 +85,6 @@ impl CompileTimeScope {
         functions.get(name).cloned()
     }
 
-
     pub fn try_set_global(&self, name: &str, variable: VariableSymbol) {
         if let Some(v) = self.get_local(name) {
             self.set_local(name, variable);
@@ -96,16 +93,3 @@ impl CompileTimeScope {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

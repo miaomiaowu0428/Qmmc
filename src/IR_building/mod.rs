@@ -1,5 +1,5 @@
 mod IR_builder;
-mod symbol_table;
 mod loop_info;
+mod symbol_table;
 
 pub use IR_builder::IRBuilder;

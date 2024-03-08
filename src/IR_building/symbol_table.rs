@@ -28,14 +28,14 @@ impl<'ctx> SymbolTable<'ctx> {
         }
     }
 
-   pub fn get(&self, name: &str) -> Option<PointerValue<'ctx>> {
-    for scope in self.stack.borrow().iter().rev() {
-        if let Some(value) = scope.get(name) {
-            return Some(*value);
+    pub fn get(&self, name: &str) -> Option<PointerValue<'ctx>> {
+        for scope in self.stack.borrow().iter().rev() {
+            if let Some(value) = scope.get(name) {
+                return Some(*value);
+            }
         }
+        None
     }
-    None
-}
 }
 
 pub struct ScopeGuard<'a, 'ctx> {

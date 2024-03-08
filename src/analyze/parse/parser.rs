@@ -2,11 +2,10 @@
 
 use std::cell::RefCell;
 
-use Expression::{BreakExpression, IdentifierExpression, LoopExpression, };
 use Expression::AssignmentExpression;
 use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
-use TokenType::{ArrowToken, BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword, ReturnKeyword};
+use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
 use TokenType::IdentifierToken;
 use TokenType::IfKeyword;
 use TokenType::IntegerToken;
@@ -18,6 +17,10 @@ use TokenType::TrueKeyword;
 use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhileKeyword;
+use TokenType::{
+    ArrowToken, BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword,
+    ReturnKeyword,
+};
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::Token;
@@ -26,11 +29,14 @@ use crate::analyze::lex::token::TokenType::FloatPointToken;
 use crate::analyze::lex::TokenType::EqualsToken;
 use crate::analyze::lex::TokenType::LoopKeyword;
 use crate::analyze::parse::block::Block;
-use crate::analyze::parse::Expression::{BracketedExpression, ContinueExpression, FunctionCallExpression, FunctionDeclarationExpression, FunctionTypeExpression, Statement};
-use crate::analyze::parse::expression::{Expression, IdentifierTypePair};
 use crate::analyze::parse::expression::Expression::BinaryExpression;
 use crate::analyze::parse::expression::Expression::ParenthesizedExpression;
 use crate::analyze::parse::expression::Expression::UnaryExpression;
+use crate::analyze::parse::expression::{Expression, IdentifierTypePair};
+use crate::analyze::parse::Expression::{
+    BracketedExpression, ConditionalBranchExpression, ContinueExpression, FunctionCallExpression,
+    FunctionDeclarationExpression, FunctionTypeExpression, Statement,
+};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -57,32 +63,48 @@ impl Parser {
     fn parse_expression(&self) -> Expression {
         let expr = match self.current().token_type {
             ValKeyword | VarKeyword => self.parse_declaration_expression(),
-            IdentifierToken if self.peek(1).token_type == EqualsToken => self.parse_assignment_expression(),
+            IdentifierToken if self.peek(1).token_type == EqualsToken => {
+                self.parse_assignment_expression()
+            }
             // IdentifierToken if self.peek(1).token_type == LeftParenthesisToken => self.parse_function_call(),
-            IfKeyword => self.parse_if_expression(),
+            IfKeyword => self.parse_conditional_branch_expression(),
             WhileKeyword => self.parse_while_expression(),
             LoopKeyword => self.parse_loop_expression(),
-            BreakKeyword => BreakExpression { break_token: self.move_next() },
-            ContinueToken => ContinueExpression { continue_token: self.move_next() },
+            BreakKeyword => BreakExpression {
+                break_token: self.move_next(),
+            },
+            ContinueToken => ContinueExpression {
+                continue_token: self.move_next(),
+            },
             FunKeyword => self.parse_function_declaration(),
             ReturnKeyword => self.parse_return_expression(),
             _ => self.parse_single_expr_or_block(0),
         };
         match self.current().token_type {
-            TokenType::SemicolonToken => Statement { expression: Box::new(expr), semicolon: self.move_next() },
-            _ => expr
+            TokenType::SemicolonToken => Statement {
+                expression: Box::new(expr),
+                semicolon: self.move_next(),
+            },
+            _ => expr,
         }
     }
 
     fn parse_function_declaration(&self) -> Expression {
         let fun_token = self.move_next(); // fun keyword
 
-        let identifier_token = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]); // function name
+        let identifier_token =
+            self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]); // function name
 
         // function parameters
-        let left_p = self.match_token(|t| t.token_type == LeftParenthesisToken, vec![LeftParenthesisToken]);
+        let left_p = self.match_token(
+            |t| t.token_type == LeftParenthesisToken,
+            vec![LeftParenthesisToken],
+        );
         let parameters = self.parse_function_parameters();
-        let right_p = self.match_token(|t| t.token_type == RightParenthesisToken, vec![RightParenthesisToken]);
+        let right_p = self.match_token(
+            |t| t.token_type == RightParenthesisToken,
+            vec![RightParenthesisToken],
+        );
 
         // return type
         let arrow_token = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
@@ -103,11 +125,19 @@ impl Parser {
     }
     fn parse_type_description(&self) -> Expression {
         if self.current().token_type == IdentifierToken {
-            IdentifierExpression { identifier_token: self.move_next() }
+            IdentifierExpression {
+                identifier_token: self.move_next(),
+            }
         } else {
-            let lp = self.match_token(|t| t.token_type == LeftParenthesisToken, vec![LeftParenthesisToken]);
+            let lp = self.match_token(
+                |t| t.token_type == LeftParenthesisToken,
+                vec![LeftParenthesisToken],
+            );
             let parameter_types = self.parse_function_parameter_types();
-            let rp = self.match_token(|t| t.token_type == RightParenthesisToken, vec![RightParenthesisToken]);
+            let rp = self.match_token(
+                |t| t.token_type == RightParenthesisToken,
+                vec![RightParenthesisToken],
+            );
             let arrow = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
             let res_type = self.parse_type_description();
             FunctionTypeExpression {
@@ -131,9 +161,15 @@ impl Parser {
 
     fn parse_function_call(&self) -> Expression {
         let identifier_token = self.move_next();
-        let left_p = self.match_token(|t| t.token_type == LeftParenthesisToken, vec![LeftParenthesisToken]);
+        let left_p = self.match_token(
+            |t| t.token_type == LeftParenthesisToken,
+            vec![LeftParenthesisToken],
+        );
         let arguments = self.parse_function_arguments();
-        let right_p = self.match_token(|t| t.token_type == RightParenthesisToken, vec![RightParenthesisToken]);
+        let right_p = self.match_token(
+            |t| t.token_type == RightParenthesisToken,
+            vec![RightParenthesisToken],
+        );
         FunctionCallExpression {
             identifier_token,
             left_p,
@@ -190,13 +226,17 @@ impl Parser {
     fn parse_loop_expression(&self) -> Expression {
         let loop_token = self.move_next();
         let body = self.parse_block();
-        LoopExpression { loop_token, body: Box::new(body) }
+        LoopExpression {
+            loop_token,
+            body: Box::new(body),
+        }
     }
 
     fn parse_block(&self) -> Expression {
         let lb = self.move_next();
         let block = Block::new();
-        while self.current().token_type != RightBraceToken && self.current().token_type != TokenType::EndOfFileToken
+        while self.current().token_type != RightBraceToken
+            && self.current().token_type != TokenType::EndOfFileToken
         {
             block.expressions.borrow_mut().push(self.parse_expression());
         }
@@ -223,34 +263,61 @@ impl Parser {
         if self.current().token_type == LeftBraceToken {
             self.parse_block()
         } else {
-            self.parse_if_expression()
+            self.parse_conditional_branch_expression()
         }
     }
 
-
-    fn parse_if_expression(&self) -> Expression {
+    fn parse_conditional_branch_expression(&self) -> Expression {
         let if_token = self.match_token(|t| t.token_type == IfKeyword, vec![IfKeyword]);
         // let if_token = self.move_next();
         let condition_expr = self.parse_single_expr_or_block(0);
-        let true_expr = self.parse_if_expr_or_block();
-        if self.current().token_type == TokenType::ElseKeyword {
-            let else_token = Some(self.move_next());
-            let false_expr = self.parse_if_expr_or_block();
-            Expression::IfExpression {
-                if_token,
-                condition: Box::new(condition_expr),
-                true_expr: Box::new(true_expr),
+        let true_block = self.parse_block();
+        let if_expr = Box::new(Expression::IfExpression {
+            if_token,
+            condition: Box::new(condition_expr),
+            then_block: Box::new(true_block),
+        });
+
+        let mut else_if_blocks = Vec::new();
+        while self.current().token_type == TokenType::ElseKeyword
+            && self.peek(1).token_type == TokenType::IfKeyword
+        {
+            else_if_blocks.push(self.parse_else_if_expr());
+        }
+
+        let else_expr = if self.current().token_type == TokenType::ElseKeyword {
+            let else_token = self.move_next();
+            let else_block = self.parse_block();
+            Some(Box::new(Expression::ElseExpression {
                 else_token,
-                false_expr: Some(Box::new(false_expr)),
-            }
+                block: Box::new(else_block),
+            }))
         } else {
-            Expression::IfExpression {
-                if_token,
-                condition: Box::new(condition_expr),
-                true_expr: Box::new(true_expr),
-                else_token: None,
-                false_expr: None,
-            }
+            None
+        };
+
+        ConditionalBranchExpression {
+            if_expr,
+            else_if_blocks,
+            else_expr,
+        }
+    }
+    fn parse_else_if_expr(&self) -> Expression {
+        let else_token = self.match_token(
+            |t| t.token_type == TokenType::ElseKeyword,
+            vec![TokenType::ElseKeyword],
+        );
+        let if_token = self.match_token(
+            |t| t.token_type == TokenType::IfKeyword,
+            vec![TokenType::IfKeyword],
+        );
+        let condition_expr = self.parse_single_expr_or_block(0);
+        let body_expr = self.parse_block();
+        Expression::ElseIfExpression {
+            else_token,
+            if_token,
+            condition: Box::new(condition_expr),
+            then_block: Box::new(body_expr),
         }
     }
 
@@ -258,7 +325,11 @@ impl Parser {
         let identifier_token = self.move_next();
         let equals_token = self.match_token(|t| t.token_type == EqualsToken, vec![EqualsToken]);
         let expression = self.parse_expression();
-        AssignmentExpression { identifier_token, equals_token, expression: Box::new(expression) }
+        AssignmentExpression {
+            identifier_token,
+            equals_token,
+            expression: Box::new(expression),
+        }
     }
 
     fn parse_single_expr_or_block(&self, priority: i32) -> Expression {
@@ -268,7 +339,6 @@ impl Parser {
             _ => self.parse_operator_expression(priority),
         }
     }
-
 
     fn parse_operator_expression(&self, parent_priority: i32) -> Expression {
         let mut left;
@@ -295,7 +365,8 @@ impl Parser {
 
     fn parse_declaration_expression(&self) -> Expression {
         let declaration_token = self.move_next();
-        let identifier_token = self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]);
+        let identifier_token =
+            self.match_token(|t| t.token_type == IdentifierToken, vec![IdentifierToken]);
 
         if self.current().token_type == EqualsToken {
             let equals_token = Some(self.move_next());
@@ -336,11 +407,15 @@ impl Parser {
 
     fn parse_literal_expression(&self) -> Expression {
         match self.current().token_type {
-            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => LiteralExpression { literal_token: self.move_next() },
+            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => LiteralExpression {
+                literal_token: self.move_next(),
+            },
             IdentifierToken if self.peek(1).token_type == LeftParenthesisToken => {
                 self.parse_function_call()
             }
-            IdentifierToken => IdentifierExpression { identifier_token: self.move_next() },
+            IdentifierToken => IdentifierExpression {
+                identifier_token: self.move_next(),
+            },
             LeftParenthesisToken => {
                 let left_p = self.move_next();
                 let expr = self.parse_operator_expression(0);
@@ -356,9 +431,22 @@ impl Parser {
                 }
             }
             _ => {
-                self.diagnostics.report_unexpected_token(self.tokens_in_the_same_line(self.current()), self.current().clone(), &vec![IntegerToken, FloatPointToken, TrueKeyword, FalseKeyword, IdentifierToken, LeftParenthesisToken]);
-                LiteralExpression { literal_token: self.move_next() }
-            },
+                self.diagnostics.report_unexpected_token(
+                    self.tokens_in_the_same_line(self.current()),
+                    self.current().clone(),
+                    &vec![
+                        IntegerToken,
+                        FloatPointToken,
+                        TrueKeyword,
+                        FalseKeyword,
+                        IdentifierToken,
+                        LeftParenthesisToken,
+                    ],
+                );
+                LiteralExpression {
+                    literal_token: self.move_next(),
+                }
+            }
         }
     }
 
@@ -378,10 +466,20 @@ impl Parser {
         } else {
             let current = self.move_next();
 
-            self.diagnostics.report_unexpected_token(self.tokens_in_the_same_line(current.clone()), current.clone(), &expected);
-            Token::new(expected[0], current.text, current.line_num, current.column_num)
+            self.diagnostics.report_unexpected_token(
+                self.tokens_in_the_same_line(current.clone()),
+                current.clone(),
+                &expected,
+            );
+            Token::new(
+                expected[0],
+                current.text,
+                current.line_num,
+                current.column_num,
+            )
         }
     }
+
     fn peek(&self, offset: usize) -> Token {
         let pos = self.pos();
 
@@ -392,13 +490,14 @@ impl Parser {
         }
     }
 
-
     fn current(&self) -> Token {
         self.peek(0)
     }
+
     fn pos(&self) -> usize {
         self.pos.borrow().clone()
     }
+
     fn move_next(&self) -> Token {
         let c = self.current();
         *self.pos.borrow_mut() += 1;

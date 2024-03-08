@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 
-use TokenType::{BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword, LessThanToken, LoopKeyword, PercentToken, ReturnKeyword};
 use TokenType::AndKeyword;
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
@@ -28,6 +27,10 @@ use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhileKeyword;
 use TokenType::WhitespaceToken;
+use TokenType::{
+    BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword,
+    LessThanToken, LoopKeyword, PercentToken, ReturnKeyword,
+};
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
@@ -58,7 +61,6 @@ impl Lexer {
         *self.column_number.borrow()
     }
 
-
     pub(crate) fn lex(&self) -> Vec<Token> {
         let mut tokens = Vec::new();
         while let Some(c) = self.current() {
@@ -73,7 +75,12 @@ impl Lexer {
             };
             tokens.push(token);
         }
-        tokens.push(Token::new(EndOfFileToken, "".to_string(), self.line_number(), self.column_number()));
+        tokens.push(Token::new(
+            EndOfFileToken,
+            "".to_string(),
+            self.line_number(),
+            self.column_number(),
+        ));
         tokens.retain(|t| t.token_type != WhitespaceToken);
         tokens
     }
@@ -90,7 +97,7 @@ impl Lexer {
         Token::new(token_type, text, self.line_number(), self.column_number())
     }
     fn lex_keyword_or_identifier(&self) -> Token {
-        let (start_line,start_column) = (self.line_number(),self.column_number());
+        let (start_line, start_column) = (self.line_number(), self.column_number());
         let text = self.lex_while(|c| c.is_alphanumeric() || c == '_');
         let token_type = match text.as_str() {
             "and" => AndKeyword,
@@ -115,93 +122,198 @@ impl Lexer {
         match self.current().unwrap() {
             '+' => {
                 self.move_next();
-                Token::new(PlusToken, "+".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    PlusToken,
+                    "+".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '-' if self.next().is_some() && *self.next().unwrap() == '>' => {
                 self.move_next();
                 self.move_next();
-                Token::new(ArrowToken, "->".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    ArrowToken,
+                    "->".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '-' => {
                 self.move_next();
-                Token::new(MinusToken, "-".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    MinusToken,
+                    "-".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '*' => {
                 self.move_next();
-                Token::new(StarToken, "*".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    StarToken,
+                    "*".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '/' => {
                 self.move_next();
-                Token::new(SlashToken, "/".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    SlashToken,
+                    "/".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '(' => {
                 self.move_next();
-                Token::new(LeftParenthesisToken, "(".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    LeftParenthesisToken,
+                    "(".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             ')' => {
                 self.move_next();
-                Token::new(RightParenthesisToken, ")".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    RightParenthesisToken,
+                    ")".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '{' => {
                 self.move_next();
-                Token::new(LeftBraceToken, "{".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    LeftBraceToken,
+                    "{".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '}' => {
                 self.move_next();
-                Token::new(RightBraceToken, "}".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    RightBraceToken,
+                    "}".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             ';' => {
                 self.move_next();
-                Token::new(SemicolonToken, ";".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    SemicolonToken,
+                    ";".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '=' if self.next().is_some() && *self.next().unwrap() == '=' => {
                 self.move_next();
                 self.move_next();
-                Token::new(EqualsEqualsToken, "==".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    EqualsEqualsToken,
+                    "==".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '=' => {
                 self.move_next();
-                Token::new(EqualsToken, "=".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    EqualsToken,
+                    "=".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '!' if self.next().is_some() && *self.next().unwrap() == '=' => {
                 self.move_next();
                 self.move_next();
-                Token::new(BangEqualsToken, "!=".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    BangEqualsToken,
+                    "!=".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '!' => {
                 self.move_next();
-                Token::new(BangToken, "!".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    BangToken,
+                    "!".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '<' => {
                 self.move_next();
-                Token::new(LessThanToken, "<".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    LessThanToken,
+                    "<".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '>' => {
                 self.move_next();
-                Token::new(GreatThanToken, ">".to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    GreatThanToken,
+                    ">".to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             '%' => {
                 let c = self.move_next();
-                Token::new(PercentToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    PercentToken,
+                    c.to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             ',' => {
                 let c = self.move_next();
-                Token::new(CommaToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    CommaToken,
+                    c.to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             ':' => {
                 let c = self.move_next();
-                Token::new(ColonToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    ColonToken,
+                    c.to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
             c => {
                 self.move_next();
-                Token::new(BadToken, c.to_string(), self.line_number(), self.column_number())
+                Token::new(
+                    BadToken,
+                    c.to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
             }
         }
     }
 
     fn lex_white_spase(&self) -> Token {
         let text = self.lex_while(|c| c.is_whitespace());
-        Token::new(WhitespaceToken, text, self.line_number(), self.column_number())
+        Token::new(
+            WhitespaceToken,
+            text,
+            self.line_number(),
+            self.column_number(),
+        )
     }
     fn current(&self) -> Option<&char> {
         self.peek(0)

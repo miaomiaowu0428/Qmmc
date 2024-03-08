@@ -1,18 +1,27 @@
 use std::rc::Rc;
 
-use BinaryOperatorType::{Addition, Division, Equals, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual, LogicalAnd, LogicalOr, Multiplication, NotEquals, Remainder, Subtraction};
+use BinaryOperatorType::{
+    Addition, Division, Equals, GreaterThan, GreaterThanOrEqual, LessThan, LessThanOrEqual,
+    LogicalAnd, LogicalOr, Multiplication, NotEquals, Remainder, Subtraction,
+};
 use CheckedExpression::VarDeclare;
 use RuntimeType::{Bool, I32};
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::Token;
-use crate::compile::{BinaryOperator, BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, RawType, UnaryOperator, UnaryOperatorType};
-use crate::compile::CheckedExpression::{Assignment, Binary, Block, Break, Call, Continue, FunctionDeclaration, Identifier, If, Literal, Loop, Return, Statement, Unary, While};
-use crate::runtime::{Function, RuntimeType, Value};
+use crate::compile::CheckedExpression::{
+    Assignment, Binary, Block, Break, Call, Continue, FunctionDeclaration, Identifier, If, Literal,
+    Loop, Return, Statement, Unary, While,
+};
+use crate::compile::{
+    BinaryOperator, BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, RawType,
+    UnaryOperator, UnaryOperatorType,
+};
 use crate::runtime::control_command::ControlCommand;
 use crate::runtime::runtime_scope::RuntimeScope;
-use crate::runtime::Value::fun;
 use crate::runtime::variable::Variable;
+use crate::runtime::Value::fun;
+use crate::runtime::{Function, RuntimeType, Value};
 
 pub struct Runtime {
     pub scope: Rc<RuntimeScope>,

@@ -47,7 +47,6 @@
 //         let evaluator = Runtime::new();
 //         let res = evaluator.evaluate(expressions.clone());
 
-
 //         assert_eq!(res[2], Value::None);
 //         assert_eq!(res[3], Value::None);
 //         assert_eq!(res[4], Value::None);
@@ -57,7 +56,6 @@
 //         assert_eq!(res[8], Value::i32(371));
 //         assert_eq!(res[9], Value::i32(407));
 //     }
-
 
 //     #[test]
 //     fn test_closure() {

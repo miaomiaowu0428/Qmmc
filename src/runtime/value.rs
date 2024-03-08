@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use crate::runtime::Function;
 use crate::runtime::r#type::RuntimeType;
+use crate::runtime::Function;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone)]
@@ -12,7 +12,6 @@ pub enum Value {
     bool(bool),
     f32(f32),
 }
-
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
@@ -37,7 +36,6 @@ impl Display for Value {
         }
     }
 }
-
 
 impl Value {
     pub fn r#type(&self) -> RuntimeType {

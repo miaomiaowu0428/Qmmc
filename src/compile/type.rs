@@ -1,6 +1,6 @@
 use crate::compile::CheckedExpression;
 
-#[derive(Debug, Clone, PartialEq,Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum RawType {
     None,
     I32,
@@ -14,10 +14,9 @@ pub struct FunctionType {
     pub return_type: Box<RawType>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct FunctionDeclare {
     pub _type: FunctionType,
     pub param_names: Vec<String>,
-    pub body:CheckedExpression
+    pub body: CheckedExpression,
 }

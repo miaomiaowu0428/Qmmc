@@ -8,8 +8,8 @@ use colored::Colorize;
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::runtime::function::Function;
-use crate::runtime::Value;
 use crate::runtime::variable::Variable;
+use crate::runtime::Value;
 
 pub type VariableMap = HashMap<String, Variable>;
 
@@ -19,7 +19,6 @@ pub struct RuntimeScope {
     pub values: RefCell<VariableMap>,
     pub(crate) diagnostics: DiagnosticBag,
 }
-
 
 impl RuntimeScope {
     pub fn new_global() -> Self {
@@ -47,7 +46,6 @@ impl RuntimeScope {
         values.insert(name.to_string(), variable);
     }
 
-
     pub fn get_global(&self, name: &str) -> Option<Variable> {
         if let Some(v) = self.get_local(name) {
             Some(v)
@@ -72,14 +70,14 @@ impl RuntimeScope {
         }
     }
 
-
-
     pub fn declare_function(&self, name: &str, function: Function) {
-        self.values.borrow_mut().insert(name.to_string(), Variable::new(
-            Value::fun { fun: function.clone() },
-        ));
+        self.values.borrow_mut().insert(
+            name.to_string(),
+            Variable::new(Value::fun {
+                fun: function.clone(),
+            }),
+        );
     }
-
 
     pub fn variables_to_string(&self) -> String {
         let mut result = String::new();
@@ -97,5 +95,3 @@ impl RuntimeScope {
         result
     }
 }
-
-

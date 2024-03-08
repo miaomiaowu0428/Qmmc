@@ -18,12 +18,8 @@ impl Debug for Function {
     }
 }
 
-
 impl Function {
     pub fn new(parameters: Vec<(String, RuntimeType)>, body: CheckedExpression) -> Self {
-        Self {
-            parameters,
-            body,
-        }
+        Self { parameters, body }
     }
 }
