@@ -131,7 +131,7 @@ fn show_ir(ir_builder: &IRBuilder) {
 fn show_input(expressions: &Vec<Expression>) {
     println!("Input Expressions: ");
     for expression in expressions {
-        println!("{:#?}", expression)
+        println!("{}", expression)
     }
     println!("==============================");
 }

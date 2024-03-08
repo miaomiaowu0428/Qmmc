@@ -3,7 +3,6 @@ use std::rc::Rc;
 use colored::Colorize;
 use lazy_static::lazy_static;
 
-use CheckedExpression::{Break, FunType};
 use TokenType::VarKeyword;
 
 use crate::analyze::diagnostic::DiagnosticBag;
@@ -101,7 +100,7 @@ impl StaticAnalyzer {
                 ..
             } => self.check_while_expression(while_token, condition, body),
             Expression::LoopExpression { body, .. } => self.check_loop_expression(body),
-            Expression::BreakExpression { .. } => Break,
+            Expression::BreakExpression { .. } => CheckedExpression::Break,
             Expression::ContinueExpression { .. } => CheckedExpression::Continue,
             Expression::FunctionDeclarationExpression {
                 identifier_token,
@@ -402,7 +401,7 @@ impl StaticAnalyzer {
         let checked_res_type = self.check_expression(*return_type);
         let res_type = self.type_of(&checked_res_type);
 
-        FunType {
+        CheckedExpression::FunType {
             _type: FunctionType {
                 param_types: parameter_types,
                 return_type: Box::from(res_type),
@@ -666,12 +665,12 @@ impl StaticAnalyzer {
             }
             CheckedExpression::Assignment { .. } => RawType::None,
             CheckedExpression::Conditional { then, .. } => self.type_of(then),
-            CheckedExpression::If { body: then, .. } => self.type_of(then),
-            CheckedExpression::ElseIf { body: then, .. } => self.type_of(then),
-            CheckedExpression::Else { body: then } => self.type_of(then),
+            CheckedExpression::If { body, .. } => self.type_of(body),
+            CheckedExpression::ElseIf { body, .. } => self.type_of(body),
+            CheckedExpression::Else { body } => self.type_of(body),
             CheckedExpression::Loop { .. } => RawType::None,
             CheckedExpression::While { .. } => RawType::None,
-            Break => RawType::None,
+            CheckedExpression::Break => RawType::None,
             CheckedExpression::Continue => RawType::None,
             CheckedExpression::FunctionDeclaration { name, function } => {
                 todo!("get fun and return the type of the fun")
@@ -688,8 +687,8 @@ impl StaticAnalyzer {
                 }
             }
             CheckedExpression::CallBuiltIn { name, arguments } => RawType::None,
-            CheckedExpression::Return { expression } => self.type_of(expression),
-            FunType { _type } => {
+            CheckedExpression::Return { expression } => RawType::None,
+            CheckedExpression::FunType { _type } => {
                 FunctionType {
                     param_types: _type.param_types.clone(),
                     return_type: _type.return_type.clone(),
