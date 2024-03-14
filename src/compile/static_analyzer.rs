@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use colored::Colorize;
 use lazy_static::lazy_static;
+use RawType::Unit;
 
 use TokenType::VarKeyword;
 
@@ -143,7 +144,7 @@ impl StaticAnalyzer {
             if_token,
             condition,
             then_block,
-        } = *if_expr
+        } = *if_expr.clone()
         {
             let checked_condition = self.check_expression(*condition);
             if self.type_of(&checked_condition.clone()) != Bool {
@@ -156,6 +157,7 @@ impl StaticAnalyzer {
             }
             let checked_then = self.check_expression(*then_block);
             let if_type = self.type_of(&checked_then);
+            self.check_return_type(&format!("{}",&if_expr).as_str(), &checked_then, if_type.clone());
 
             let mut checked_else_ifs = Vec::new();
             for else_if_block in else_if_blocks {
@@ -219,6 +221,7 @@ impl StaticAnalyzer {
                 then: Box::from(checked_then),
                 else_ifs: checked_else_ifs,
                 else_expr: checked_else,
+                _type: if_type,
             }
         } else {
             panic!("{:#?},not an if expression", if_expr);
@@ -380,7 +383,7 @@ impl StaticAnalyzer {
             None => {
                 self.scope.set_local(
                     &identifier_token.text,
-                    VariableSymbol::new_immut(RawType::None),
+                    VariableSymbol::new_immut(Unit),
                 );
                 CheckedExpression::Literal {
                     value: ConstExpr::None,
@@ -413,7 +416,7 @@ impl StaticAnalyzer {
         let symbol = self.scope.get_global(&identifier.text);
         let r#type = match symbol {
             Some(s) => s.r#type,
-            None => RawType::None,
+            None => Unit,
         };
         CheckedExpression::Identifier { name: identifier }
     }
@@ -630,19 +633,19 @@ impl StaticAnalyzer {
 
     pub fn type_of(&self, expression: &CheckedExpression) -> RawType {
         match expression {
-            CheckedExpression::Statement { .. } => RawType::None,
+            CheckedExpression::Statement { .. } => Unit,
             CheckedExpression::Literal { value } => match value {
                 ConstExpr::I32(_) => I32,
                 ConstExpr::F32(_) => F32,
                 ConstExpr::Bool(_) => Bool,
-                ConstExpr::None => RawType::None,
+                ConstExpr::None => Unit,
             },
             CheckedExpression::Unary { op, .. } => op.res_type.clone(),
             CheckedExpression::Binary { op, .. } => op.res_type.clone(),
             CheckedExpression::Block { expressions } => expressions
                 .last()
                 .map(|e| self.type_of(e))
-                .unwrap_or(RawType::None),
+                .unwrap_or(Unit),
             CheckedExpression::Identifier { name: identifier } => {
                 match self.check_base_type(&identifier.text) {
                     Some(t) => t,
@@ -657,21 +660,21 @@ impl StaticAnalyzer {
                                     identifier.line_num.to_string().red(),
                                     identifier.column_num.to_string().red()
                                 ));
-                                RawType::None
+                                Unit
                             }
                         }
                     }
                 }
             }
-            CheckedExpression::Assignment { .. } => RawType::None,
+            CheckedExpression::Assignment { .. } => Unit,
             CheckedExpression::Conditional { then, .. } => self.type_of(then),
             CheckedExpression::If { body, .. } => self.type_of(body),
             CheckedExpression::ElseIf { body, .. } => self.type_of(body),
             CheckedExpression::Else { body } => self.type_of(body),
-            CheckedExpression::Loop { .. } => RawType::None,
-            CheckedExpression::While { .. } => RawType::None,
-            CheckedExpression::Break => RawType::None,
-            CheckedExpression::Continue => RawType::None,
+            CheckedExpression::Loop { .. } => Unit,
+            CheckedExpression::While { .. } => Unit,
+            CheckedExpression::Break => Unit,
+            CheckedExpression::Continue => Unit,
             CheckedExpression::FunctionDeclaration { name, function } => {
                 todo!("get fun and return the type of the fun")
             }
@@ -683,19 +686,19 @@ impl StaticAnalyzer {
                 if let Some(fun) = self.scope.get_global_function(&name.text) {
                     *fun._type.return_type
                 } else {
-                    RawType::None
+                    Unit
                 }
             }
-            CheckedExpression::CallBuiltIn { name, arguments } => RawType::None,
-            CheckedExpression::Return { expression } => RawType::None,
+            CheckedExpression::CallBuiltIn { name, arguments } => Unit,
+            CheckedExpression::Return { expression } => Unit,
             CheckedExpression::FunType { _type } => {
                 FunctionType {
                     param_types: _type.param_types.clone(),
                     return_type: _type.return_type.clone(),
                 };
-                RawType::None
+                Unit
             }
-            CheckedExpression::VarDeclare { .. } => RawType::None,
+            CheckedExpression::VarDeclare { .. } => Unit,
         }
     }
 
@@ -715,6 +718,8 @@ impl StaticAnalyzer {
             "I32" => Some(I32),
             "F32" => Some(F32),
             "Bool" => Some(Bool),
+            "()" => Some(Unit),
+            "Unit" => Some(Unit),
             _ => None,
         }
     }

@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use colored::Colorize;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
-use inkwell::IntPredicate;
+use inkwell::{FloatPredicate, IntPredicate};
 use inkwell::module::Module;
 use inkwell::values::{BasicMetadataValueEnum, PointerValue};
 use inkwell::values::BasicValue;
@@ -106,7 +106,7 @@ impl<'ctx> IRBuilder<'ctx> {
                 condition,
                 then,
                 else_ifs,
-                else_expr,
+                else_expr, _type,
             } => {
                 self.build_conditional(condition, then, else_ifs, else_expr);
             }
@@ -257,7 +257,7 @@ impl<'ctx> IRBuilder<'ctx> {
                 RawType::I32 => self.context.i32_type().fn_type(&types, false),
                 RawType::F32 => self.context.f32_type().fn_type(&types, false),
                 RawType::Bool => self.context.bool_type().fn_type(&types, false),
-                RawType::None => self.context.void_type().fn_type(&types, false),
+                RawType::Unit => self.context.void_type().fn_type(&types, false),
             };
             fun_type
         };
@@ -312,24 +312,11 @@ impl<'ctx> IRBuilder<'ctx> {
                             .build_return(self.build_basic_value(*expression.clone()).as_deref())
                             .unwrap();
                     }
-                    // CheckedExpression::Conditional {
-                    //     condition,
-                    //     then,
-                    //     else_ifs,
-                    //     else_expr,
-                    // } => {
-                    //     self.build_conditional(
-                    //         condition.clone(),
-                    //         then.clone(),
-                    //         else_ifs.clone(),
-                    //         else_expr.clone(),
-                    //     );
-                    // }
                     CheckedExpression::Conditional {
                         condition,
                         then,
                         else_ifs,
-                        else_expr,
+                        else_expr, _type,
                     } => {
                         self.build_valued_conditional(
                             condition.clone(),
@@ -450,193 +437,301 @@ impl<'ctx> IRBuilder<'ctx> {
                 ),
             }, // end of Unary
             CheckedExpression::Binary { op, left, right } => {
-                match (op.left_type, op.operator_type, op.right_type) {
-                    (RawType::I32, BinaryOperatorType::Addition, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_add(l, r, "add")
-                                .expect("build i32 addition failed"),
-                        ))
+                match (op.left_type, op.right_type) {
+                    (RawType::Bool, RawType::Bool) => {
+                        let left = self.build_basic_value(*left).unwrap();
+                        let right = self.build_basic_value(*right).unwrap();
+                        let res = match op.operator_type {
+                            BinaryOperatorType::Equals => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::EQ,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "eq",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::NotEquals => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::NE,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "ne",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::LogicalAnd => {
+                                let res = self.builder.build_and(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "and",
+                                );
+                                res.expect("build and failed")
+                            }
+                            BinaryOperatorType::LogicalOr => {
+                                let res = self.builder.build_or(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "or",
+                                );
+                                res.expect("build or failed")
+                            }
+                            BinaryOperatorType::GreaterThan => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::SGT,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "gt",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            _ => todo!(
+                                "{}: {:?} {:#?} {:?}",
+                                "Binary operator not implemented for ".red(),
+                                op.left_type,
+                                op,
+                                op.right_type
+                            ),
+                        };
+                        Some(Box::from(res))
+                    },
+                    (RawType::I32, RawType::I32) => {
+                        let left = self.build_basic_value(*left).unwrap();
+                        let right = self.build_basic_value(*right).unwrap();
+                        let res = match op.operator_type {
+                            BinaryOperatorType::Addition => {
+                                let res = self.builder.build_int_add(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "add",
+                                );
+                                res.expect("build int add failed")
+                            }
+                            BinaryOperatorType::Subtraction => {
+                                let res = self.builder.build_int_sub(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "sub",
+                                );
+                                res.expect("build int sub failed")
+                            }
+                            BinaryOperatorType::Multiplication => {
+                                let res = self.builder.build_int_mul(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "mul",
+                                );
+                                res.expect("build int mul failed")
+                            }
+                            BinaryOperatorType::Division => {
+                                let res = self.builder.build_int_signed_div(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "div",
+                                );
+                                res.expect("build int div failed")
+                            }
+                            BinaryOperatorType::Remainder => {
+                                let res = self.builder.build_int_signed_rem(
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "rem",
+                                );
+                                res.expect("build int rem failed")
+                            }
+                            BinaryOperatorType::Equals => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::EQ,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "eq",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::NotEquals => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::NE,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "ne",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::GreaterThan => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::SGT,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "gt",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::LessThan => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::SLT,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "lt",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::GreaterThanOrEqual => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::SGE,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "ge",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            BinaryOperatorType::LessThanOrEqual => {
+                                let res = self.builder.build_int_compare(
+                                    IntPredicate::SLE,
+                                    left.as_basic_value_enum().into_int_value(),
+                                    right.as_basic_value_enum().into_int_value(),
+                                    "le",
+                                );
+                                res.expect("build int compare failed")
+                            }
+                            _ => todo!(
+                                "{}: {:?} {:#?} {:?}",
+                                "Binary operator not implemented for ".red(),
+                                op.left_type,
+                                op,
+                                op.right_type
+                            ),
+                        };
+                        Some(Box::from(res))
                     }
-                    (RawType::I32, BinaryOperatorType::Equals, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::EQ, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
+                    (RawType::F32, RawType::F32)
+                    if vec![
+                        BinaryOperatorType::Addition,
+                        BinaryOperatorType::Subtraction,
+                        BinaryOperatorType::Multiplication,
+                        BinaryOperatorType::Division,
+                        BinaryOperatorType::Remainder,
+                    ].contains(&op.operator_type) == false
+                    => {
+                        let left = self.build_basic_value(*left).unwrap();
+                        let right = self.build_basic_value(*right).unwrap();
+                        let res = match op.operator_type {
+                            BinaryOperatorType::Addition => {
+                                let res = self.builder.build_float_add(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "add",
+                                );
+                                res.expect("build float add failed")
+                            }
+                            BinaryOperatorType::Subtraction => {
+                                let res = self.builder.build_float_sub(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "sub",
+                                );
+                                res.expect("build float sub failed")
+                            }
+                            BinaryOperatorType::Multiplication => {
+                                let res = self.builder.build_float_mul(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "mul",
+                                );
+                                res.expect("build float mul failed")
+                            }
+                            BinaryOperatorType::Division => {
+                                let res = self.builder.build_float_div(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "div",
+                                );
+                                res.expect("build float div failed")
+                            }
+                            BinaryOperatorType::Remainder => {
+                                let res = self.builder.build_float_rem(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "mod",
+                                );
+                                res.expect("build float mod failed")
+                            }
+                            _ => todo!(
+                                "{}: {:?} {:#?} {:?}",
+                                "Binary operator not implemented for ".red(),
+                                op.left_type,
+                                op,
+                                op.right_type
+                            ),
+                        };
+                        Some(Box::from(res))
                     }
-                    (RawType::Bool, BinaryOperatorType::Equals, RawType::Bool) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::EQ, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::Bool, BinaryOperatorType::NotEquals, RawType::Bool) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::NE, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::GreaterThan, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::SGT, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::NotEquals, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::NE, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::Remainder, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_signed_rem(l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::Subtraction, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_sub(l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::Multiplication, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_mul(l, r, "mul")
-                                .expect("build i32 multiplication failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::Division, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_signed_div(l, r, "div")
-                                .expect("build i32 division failed"),
-                        ))
-                    }
-                    (RawType::I32, BinaryOperatorType::LessThan, RawType::I32) => {
-                        let l = self
-                            .build_basic_value(*left)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        let r = self
-                            .build_basic_value(*right)
-                            .unwrap()
-                            .as_basic_value_enum()
-                            .into_int_value();
-                        Some(Box::from(
-                            self.builder
-                                .build_int_compare(IntPredicate::SLT, l, r, "sub")
-                                .expect("build i32 subtraction failed"),
-                        ))
+                    (RawType::F32, RawType::F32) => {
+                        let left = self.build_basic_value(*left).unwrap();
+                        let right = self.build_basic_value(*right).unwrap();
+                        let res = match op.operator_type {
+                            BinaryOperatorType::Equals => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::OEQ,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "eq",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            BinaryOperatorType::NotEquals => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::ONE,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "ne",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            BinaryOperatorType::GreaterThan => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::OGT,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "gt",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            BinaryOperatorType::LessThan => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::OLT,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "lt",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            BinaryOperatorType::GreaterThanOrEqual => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::OGE,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "ge",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            BinaryOperatorType::LessThanOrEqual => {
+                                let res = self.builder.build_float_compare(
+                                    FloatPredicate::OLE,
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "le",
+                                );
+                                res.expect("build float compare failed")
+                            }
+                            _ => todo!(
+                                "{}: {:?} {:#?} {:?}",
+                                "Binary operator not implemented for ".red(),
+                                op.left_type,
+                                op,
+                                op.right_type
+                            ),
+                        };
+                        Some(Box::from(res))
                     }
                     _ => todo!(
                         "{}: {:?} {:#?} {:?}",
@@ -656,7 +751,7 @@ impl<'ctx> IRBuilder<'ctx> {
                 condition,
                 then,
                 else_ifs,
-                else_expr,
+                else_expr, _type,
             } => {
                 self.build_conditional(condition, then, else_ifs, else_expr);
                 None

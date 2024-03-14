@@ -2,7 +2,7 @@ use crate::compile::CheckedExpression;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum RawType {
-    None,
+    Unit,
     I32,
     Bool,
     F32,

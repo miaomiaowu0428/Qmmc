@@ -41,6 +41,7 @@ pub enum CheckedExpression {
         then: Box<CheckedExpression>,
         else_ifs: Vec<CheckedExpression>,
         else_expr: Option<Box<CheckedExpression>>,
+        _type: RawType,
     },
     If {
         condition: Box<CheckedExpression>,
