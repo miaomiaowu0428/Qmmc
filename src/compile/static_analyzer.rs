@@ -317,7 +317,7 @@ impl StaticAnalyzer {
     }
 
     fn check_block(&self, block: Block) -> CheckedExpression {
-        let crate::analyze::parse::Block { expressions } = block;
+        let Block { expressions } = block;
         let expressions = expressions
             .borrow()
             .iter()
