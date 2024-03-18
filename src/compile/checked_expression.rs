@@ -30,6 +30,7 @@ pub enum CheckedExpression {
     },
     VarDeclare {
         name: Token,
+        _type: RawType,
         init_expr: Box<CheckedExpression>,
     },
     Assignment {

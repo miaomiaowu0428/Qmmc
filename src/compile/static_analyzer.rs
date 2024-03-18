@@ -157,7 +157,11 @@ impl StaticAnalyzer {
             }
             let checked_then = self.check_expression(*then_block);
             let if_type = self.type_of(&checked_then);
-            self.check_return_type(&format!("{}",&if_expr).as_str(), &checked_then, if_type.clone());
+            self.check_return_type(
+                &format!("{}", &if_expr).as_str(),
+                &checked_then,
+                if_type.clone(),
+            );
 
             let mut checked_else_ifs = Vec::new();
             for else_if_block in else_if_blocks {
@@ -366,25 +370,22 @@ impl StaticAnalyzer {
             Some(e) => {
                 let checked_expression = self.check_expression(*e);
                 let mutable = declaration_token.token_type == VarKeyword;
+                let _type = self.type_of(&checked_expression.clone()).clone();
 
                 self.scope.set_local(
                     &identifier_token.text,
-                    VariableSymbol::init_as(
-                        mutable,
-                        self.type_of(&checked_expression.clone()).clone(),
-                    ),
+                    VariableSymbol::init_as(mutable, _type.clone()),
                 );
 
                 CheckedExpression::VarDeclare {
                     name: identifier_token,
                     init_expr: Box::new(checked_expression),
+                    _type,
                 }
             }
             None => {
-                self.scope.set_local(
-                    &identifier_token.text,
-                    VariableSymbol::new_immut(Unit),
-                );
+                self.scope
+                    .set_local(&identifier_token.text, VariableSymbol::new_immut(Unit));
                 CheckedExpression::Literal {
                     value: ConstExpr::None,
                 }
@@ -642,10 +643,9 @@ impl StaticAnalyzer {
             },
             CheckedExpression::Unary { op, .. } => op.res_type.clone(),
             CheckedExpression::Binary { op, .. } => op.res_type.clone(),
-            CheckedExpression::Block { expressions } => expressions
-                .last()
-                .map(|e| self.type_of(e))
-                .unwrap_or(Unit),
+            CheckedExpression::Block { expressions } => {
+                expressions.last().map(|e| self.type_of(e)).unwrap_or(Unit)
+            }
             CheckedExpression::Identifier { name: identifier } => {
                 match self.check_base_type(&identifier.text) {
                     Some(t) => t,

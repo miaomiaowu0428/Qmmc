@@ -1,4 +1,4 @@
-fun main()->I32{
+fun main() -> I32 {
     if false {
          16
     } else if 1 != 1 {
