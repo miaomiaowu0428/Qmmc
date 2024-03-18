@@ -86,30 +86,18 @@ pub enum CheckedExpression {
     },
 }
 
-// impl CheckedExpression {
-//     pub fn position(&self) -> (usize, usize) {
-//         match self {
-//             CheckedExpression::Statement { expression } => expression.position(),
-//             CheckedExpression::Literal { value } => value.position(),
-//             CheckedExpression::Unary { op, operand } => op.position(),
-//             CheckedExpression::Binary { op, left, right } => op.position(),
-//             CheckedExpression::Block { expressions } => expressions[0].position(),
-//             CheckedExpression::Identifier { identifier } => identifier.position(),
-//             CheckedExpression::VarDeclare { name, init_expr } => name.position(),
-//             CheckedExpression::Assignment { identifier, expression } => identifier.position(),
-//             CheckedExpression::If { condition, then, r#else } => condition.position(),
-//             CheckedExpression::Loop { body } => body.position(),
-//             CheckedExpression::While { condition, body } => condition.position(),
-//             CheckedExpression::Break => (0, 0),
-//             CheckedExpression::Continue => (0, 0),
-//             CheckedExpression::FunctionDeclaration { name, function } => name.position(),
-//             CheckedExpression::Call { name, function, arguments } => name.position(),
-//             CheckedExpression::CallBuiltIn { name, arguments } => name.position(),
-//             CheckedExpression::Return { expression } => expression.position(),
-//             CheckedExpression::FunType { _type } => _type.position(),
-//         }
-//     }
-// }
+impl CheckedExpression {
+    pub fn unwrap(self) -> Vec<CheckedExpression> {
+        match self {
+            CheckedExpression::Block { expressions } => {
+                expressions
+            }
+            _ => {
+                vec![self]
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Parameter {

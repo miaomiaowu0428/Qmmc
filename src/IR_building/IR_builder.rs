@@ -12,7 +12,7 @@ use colored::Colorize;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
-use inkwell::types::{AnyType, AnyTypeEnum, BasicTypeEnum, StructType};
+use inkwell::types::{AnyType, AnyTypeEnum, BasicType, BasicTypeEnum, StructType};
 use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
 use inkwell::values::FunctionValue;
@@ -26,7 +26,7 @@ pub struct IRBuilder<'ctx> {
     current_function: RefCell<Option<FunctionValue<'ctx>>>,
     symbol_table: SymbolTable<'ctx>,
     loop_stack: LoopStack<'ctx>,
-    zst: AnyTypeEnum<'ctx>,
+    zst: BasicTypeEnum<'ctx>,
     pub(crate) diagnostics: DiagnosticBag,
 }
 
@@ -43,7 +43,7 @@ impl<'ctx> IRBuilder<'ctx> {
             current_function: RefCell::new(None),
             symbol_table: SymbolTable::new(),
             loop_stack: LoopStack::new(),
-            zst: AnyTypeEnum::from(context.struct_type(&[], false)),
+            zst: BasicTypeEnum::from(context.struct_type(&[], false)),
             diagnostics: DiagnosticBag::new(),
         }
     }
@@ -117,96 +117,6 @@ impl<'ctx> IRBuilder<'ctx> {
         self.symbol_table
             .insert(name.to_string(), var.as_pointer_value());
     }
-
-    // fn build_ir(&self, expression: CheckedExpression) {
-    //     // println!("Current Block: {:#?}", self.builder.get_insert_block());
-    //     // println!("Building: {:#?}", expression);
-    //
-    //     match expression {
-    //         CheckedExpression::FunctionDeclaration { name, function } => {
-    //             self.build_function_declare(name, *function);
-    //         }
-    //         CheckedExpression::Return { expression } => {
-    //             self.builder
-    //                 .build_return(self.build_basic_value(*expression).as_deref())
-    //                 .expect("build return failed");
-    //         }
-    //         CheckedExpression::Block { expressions } => {
-    //             self.build_block(expressions);
-    //         }
-    //         CheckedExpression::Conditional {
-    //             condition,
-    //             then,
-    //             else_ifs,
-    //             else_expr, _type,
-    //         } => {
-    //             self.build_conditional(condition, then, else_ifs, else_expr);
-    //         }
-    //         CheckedExpression::VarDeclare { name, _type, init_expr } => {
-    //             let var = self
-    //                 .builder
-    //                 .build_alloca(self.context.i32_type(), &name.text)
-    //                 .expect("build alloc failed");
-    //             self.symbol_table.insert(name.text.clone(), var);
-    //             self.builder
-    //                 .build_store(
-    //                     var,
-    //                     self.build_basic_value(*init_expr)
-    //                         .unwrap()
-    //                         .as_basic_value_enum()
-    //                         .into_int_value(),
-    //                 )
-    //                 .expect("build store failed");
-    //         }
-    //         CheckedExpression::Assignment {
-    //             identifier: name,
-    //             expression,
-    //         } => {
-    //             let var = self.symbol_table.get(&name.text).unwrap();
-    //             let res = self
-    //                 .build_basic_value(*expression)
-    //                 .unwrap()
-    //                 .as_basic_value_enum()
-    //                 .into_int_value();
-    //             self.builder
-    //                 .build_store(var, res)
-    //                 .expect("build store failed");
-    //         }
-    //         CheckedExpression::While { condition, body } => {
-    //             self.build_while(self.current_function.borrow().unwrap(), condition, body);
-    //         }
-    //         CheckedExpression::Loop { body } => {
-    //             self.build_loop(*body);
-    //         }
-    //         CheckedExpression::Break => {
-    //             let merge_block = self.loop_stack.top().unwrap().merge_block;
-    //             self.builder
-    //                 .build_unconditional_branch(merge_block)
-    //                 .expect("build unconditional branch failed");
-    //         }
-    //         CheckedExpression::Continue => {
-    //             let body_block = self.loop_stack.top().unwrap().body_block;
-    //             self.builder
-    //                 .build_unconditional_branch(body_block)
-    //                 .expect("build unconditional branch failed");
-    //         }
-    //         CheckedExpression::Call {
-    //             name,
-    //             function,
-    //             arguments,
-    //         } => {
-    //             self.value_of_call(name, function, arguments);
-    //         }
-    //
-    //         _ => todo!(
-    //             "\n{}{:#?}",
-    //             "cannot build instruction from Expression not implemented: \n".red(),
-    //             expression
-    //         ),
-    //     }
-    //
-    //     // println!("Current Block: {:#?}", self.builder.get_insert_block());
-    // }
 
     fn build_loop(&self, body: CheckedExpression) {
         if let CheckedExpression::Block { expressions } = body {
@@ -328,7 +238,7 @@ impl<'ctx> IRBuilder<'ctx> {
                     format!("{}{:#?}{}", "cannot convert", T, " to function type").red()
                 ),
             }
-            .unwrap();
+                .unwrap();
             self.builder
                 .build_store(alloca, arg)
                 .expect("build store failed");
@@ -368,6 +278,8 @@ impl<'ctx> IRBuilder<'ctx> {
         }
     }
     fn build_any_value(&self, expression: CheckedExpression) -> Box<dyn AnyValue + '_> {
+        // println!("{}: {:#?}", "building any value".green(), expression);
+
         match expression {
             CheckedExpression::Statement { expression } => {
                 self.build_any_value(*expression);
@@ -381,16 +293,29 @@ impl<'ctx> IRBuilder<'ctx> {
                 self.new_zst_value()
             }
             CheckedExpression::Return { expression } => {
+                let ret_block = self.context.append_basic_block(self.current_function.borrow().unwrap(), "return");
+                let merge_block = self.context.append_basic_block(self.current_function.borrow().unwrap(), "merge");
+
+                self.builder.build_conditional_branch(
+                    self.context.bool_type().const_int(1, false),
+                    ret_block,
+                    merge_block,
+                ).expect("build conditional branch failed");
+
+                self.builder.position_at_end(ret_block);
                 self.builder
                     .build_return(self.build_basic_value(*expression).as_deref())
                     .expect("build return failed");
+
+                self.builder.position_at_end(merge_block);
+
                 self.new_zst_value()
             }
-            CheckedExpression::Block { expressions } => {
-                self.build_block_may_contains_any_value(expressions)
-            }
+            CheckedExpression::Block { expressions } => self.build_valued_block(expressions),
+            CheckedExpression::VarDeclare { name, _type, init_expr }=>self.build_var_declare(name, _type, init_expr),
             CheckedExpression::Identifier { name } => {
-                let var = self.symbol_table.get(&name.text).unwrap();
+                println!("{}", format!("scope: {:#?}", self.symbol_table).green());
+                let var = self.symbol_table.get(&name.text).expect(&format!("{} not found", name.text.red()));
                 Box::from(
                     self.builder
                         .build_load(PointerValue::try_from(var).unwrap(), &name.text)
@@ -637,69 +562,69 @@ impl<'ctx> IRBuilder<'ctx> {
                     Box::from(res)
                 }
                 (RawType::F32, RawType::F32)
-                    if vec![
-                        BinaryOperatorType::Addition,
-                        BinaryOperatorType::Subtraction,
-                        BinaryOperatorType::Multiplication,
-                        BinaryOperatorType::Division,
-                        BinaryOperatorType::Remainder,
-                    ]
+                if vec![
+                    BinaryOperatorType::Addition,
+                    BinaryOperatorType::Subtraction,
+                    BinaryOperatorType::Multiplication,
+                    BinaryOperatorType::Division,
+                    BinaryOperatorType::Remainder,
+                ]
                     .contains(&op.operator_type)
-                        == false =>
-                {
-                    let left = self.build_basic_value(*left).unwrap();
-                    let right = self.build_basic_value(*right).unwrap();
-                    let res = match op.operator_type {
-                        BinaryOperatorType::Addition => {
-                            let res = self.builder.build_float_add(
-                                left.as_basic_value_enum().into_float_value(),
-                                right.as_basic_value_enum().into_float_value(),
-                                "add",
-                            );
-                            res.expect("build float add failed")
-                        }
-                        BinaryOperatorType::Subtraction => {
-                            let res = self.builder.build_float_sub(
-                                left.as_basic_value_enum().into_float_value(),
-                                right.as_basic_value_enum().into_float_value(),
-                                "sub",
-                            );
-                            res.expect("build float sub failed")
-                        }
-                        BinaryOperatorType::Multiplication => {
-                            let res = self.builder.build_float_mul(
-                                left.as_basic_value_enum().into_float_value(),
-                                right.as_basic_value_enum().into_float_value(),
-                                "mul",
-                            );
-                            res.expect("build float mul failed")
-                        }
-                        BinaryOperatorType::Division => {
-                            let res = self.builder.build_float_div(
-                                left.as_basic_value_enum().into_float_value(),
-                                right.as_basic_value_enum().into_float_value(),
-                                "div",
-                            );
-                            res.expect("build float div failed")
-                        }
-                        BinaryOperatorType::Remainder => {
-                            let res = self.builder.build_float_rem(
-                                left.as_basic_value_enum().into_float_value(),
-                                right.as_basic_value_enum().into_float_value(),
-                                "mod",
-                            );
-                            res.expect("build float mod failed")
-                        }
-                        _ => todo!(
-                            "{}: {:?} {:#?} {:?}",
-                            "Binary operator not implemented for ".red(),
-                            op.left_type,
-                            op,
-                            op.right_type
-                        ),
-                    };
-                    Box::from(res)
-                }
+                    == false =>
+                    {
+                        let left = self.build_basic_value(*left).unwrap();
+                        let right = self.build_basic_value(*right).unwrap();
+                        let res = match op.operator_type {
+                            BinaryOperatorType::Addition => {
+                                let res = self.builder.build_float_add(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "add",
+                                );
+                                res.expect("build float add failed")
+                            }
+                            BinaryOperatorType::Subtraction => {
+                                let res = self.builder.build_float_sub(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "sub",
+                                );
+                                res.expect("build float sub failed")
+                            }
+                            BinaryOperatorType::Multiplication => {
+                                let res = self.builder.build_float_mul(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "mul",
+                                );
+                                res.expect("build float mul failed")
+                            }
+                            BinaryOperatorType::Division => {
+                                let res = self.builder.build_float_div(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "div",
+                                );
+                                res.expect("build float div failed")
+                            }
+                            BinaryOperatorType::Remainder => {
+                                let res = self.builder.build_float_rem(
+                                    left.as_basic_value_enum().into_float_value(),
+                                    right.as_basic_value_enum().into_float_value(),
+                                    "mod",
+                                );
+                                res.expect("build float mod failed")
+                            }
+                            _ => todo!(
+                                "{}: {:?} {:#?} {:?}",
+                                "Binary operator not implemented for ".red(),
+                                op.left_type,
+                                op,
+                                op.right_type
+                            ),
+                        };
+                        Box::from(res)
+                    }
                 (RawType::F32, RawType::F32) => {
                     let left = self.build_basic_value(*left).unwrap();
                     let right = self.build_basic_value(*right).unwrap();
@@ -787,10 +712,8 @@ impl<'ctx> IRBuilder<'ctx> {
                 else_ifs,
                 else_expr,
                 _type,
-            } => self.build_conditional_val(condition, then, else_ifs, else_expr),
-            CheckedExpression::Else { body } => {
-                self.build_block_may_contains_any_value(vec![*body])
-            }
+            } => self.build_conditional_val(condition, then, else_ifs, else_expr, _type),
+            CheckedExpression::Else { body } => self.build_valued_block(vec![*body]),
             _ => todo!(
                 "{}: {:#?}",
                 "cannot build basic value from Expression: \n".red(),
@@ -799,40 +722,31 @@ impl<'ctx> IRBuilder<'ctx> {
         }
     }
 
-    fn value_of_call(
+    fn build_var_declare(
         &self,
         name: Token,
-        function: FunctionType,
-        arguments: Vec<CheckedExpression>,
-    ) -> Option<Box<dyn BasicValue + '_>> {
-        let mut args = Vec::new();
-        for arg in arguments.iter() {
-            args.push(
-                BasicMetadataValueEnum::try_from(
-                    self.build_basic_value(arg.clone())
-                        .unwrap()
-                        .as_any_value_enum(),
-                )
-                .unwrap(),
-            );
+        _type: RawType,
+        init_expr: Box<CheckedExpression>,
+    ) -> Box<dyn AnyValue + '_> {
+        let alloca = match _type {
+            RawType::I32 => self.builder.build_alloca(self.context.i32_type(), &name.text),
+            RawType::F32 => self.builder.build_alloca(self.context.f32_type(), &name.text),
+            RawType::Bool => self.builder.build_alloca(self.context.bool_type(), &name.text),
+            _ => todo!(
+                "{}",
+                format!("{}{:#?}", "cannot convert to alloca type", _type).red()
+            ),
         }
+        .unwrap();
 
-        let res_name = format!("{}{}", "res_", &name.text);
-        match self.module.get_function(&name.text) {
-            Some(func) => {
-                let res = self
-                    .builder
-                    .build_call(func, &args, &*res_name)
-                    .expect(&*format!("Build Call of {} failed", &name.text));
-                let res = res.try_as_basic_value().left().unwrap();
-                Some(Box::from(res))
-            }
-            None => {
-                self.diagnostics
-                    .report(format!("Function {} not found", &name.text));
-                None
-            }
-        }
+        self.symbol_table.insert(name.text.clone(), alloca);
+        println!("{} declared: {:#?}", name.text.green(), alloca);
+
+        let init = self.build_basic_value(*init_expr).unwrap();
+        self.builder
+            .build_store(alloca, init.as_basic_value_enum())
+            .expect("build store failed");
+        self.new_zst_value()
     }
 
     fn any_value_of_call(
@@ -849,7 +763,7 @@ impl<'ctx> IRBuilder<'ctx> {
                         .unwrap()
                         .as_any_value_enum(),
                 )
-                .unwrap(),
+                    .unwrap(),
             );
         }
 
@@ -871,154 +785,35 @@ impl<'ctx> IRBuilder<'ctx> {
         }
     }
 
-    // fn build_conditional(
-    //     &self,
-    //     condition: Box<CheckedExpression>,
-    //     then: Box<CheckedExpression>,
-    //     else_ifs: Vec<CheckedExpression>,
-    //     else_expr: Option<Box<CheckedExpression>>,
-    // ) {
-    //     let entry_block = self.builder.get_insert_block().unwrap();
-    //
-    //     let condition = self
-    //         .build_basic_value(*condition)
-    //         .unwrap()
-    //         .as_basic_value_enum()
-    //         .into_int_value();
-    //     let then_block = self
-    //         .context
-    //         .append_basic_block(self.current_function.borrow().unwrap(), "then");
-    //     let merge_block = self
-    //         .context
-    //         .append_basic_block(self.current_function.borrow().unwrap(), "merge");
-    //
-    //     self.builder.position_at_end(then_block);
-    //     if let CheckedExpression::Block { expressions } = *then {
-    //         for e in expressions {
-    //             self.build_ir(e);
-    //         }
-    //     } else {
-    //         panic!(
-    //             "{}",
-    //             format!("{:#?} is not a block expression", then).red()
-    //         )
-    //     }
-    //     self.builder
-    //         .build_unconditional_branch(merge_block)
-    //         .expect("build unconditional branch failed");
-    //
-    //     if else_ifs.len() == 0 {
-    //         if else_expr.is_some() {
-    //             let else_block = self
-    //                 .context
-    //                 .append_basic_block(self.current_function.borrow().unwrap(), "else");
-    //             self.builder.position_at_end(entry_block);
-    //             self.builder
-    //                 .build_conditional_branch(condition, then_block, else_block)
-    //                 .expect("build conditional branch failed");
-    //
-    //             self.builder.position_at_end(else_block);
-    //             if let CheckedExpression::Else { body } = *else_expr.clone().unwrap() {
-    //                 self.build_ir(*body);
-    //             } else {
-    //                 panic!(
-    //                     "{}",
-    //                     format!("{:#?} is not a else expression", else_expr).red()
-    //                 )
-    //             }
-    //             self.builder
-    //                 .build_unconditional_branch(merge_block)
-    //                 .expect("build unconditional branch failed");
-    //         } else {
-    //             self.builder.position_at_end(entry_block);
-    //             self.builder
-    //                 .build_conditional_branch(condition, then_block, merge_block)
-    //                 .expect("build conditional branch failed");
-    //         }
-    //     } else {
-    //         let condition_blocks: Vec<_> = else_ifs
-    //             .iter()
-    //             .enumerate()
-    //             .map(|(i, _)| {
-    //                 self.context.append_basic_block(
-    //                     self.current_function.borrow().unwrap(),
-    //                     &format!("else_if_condition_{}", i),
-    //                 )
-    //             })
-    //             .collect();
-    //
-    //         let else_block = self
-    //             .context
-    //             .append_basic_block(self.current_function.borrow().unwrap(), "else");
-    //
-    //         for (i, else_if) in else_ifs.into_iter().enumerate() {
-    //             if let CheckedExpression::ElseIf { condition, body } = else_if {
-    //                 self.builder.position_at_end(condition_blocks[i]);
-    //                 let condition = self
-    //                     .build_basic_value(*condition)
-    //                     .unwrap()
-    //                     .as_basic_value_enum()
-    //                     .into_int_value();
-    //                 let else_if_block = self.context.append_basic_block(
-    //                     self.current_function.borrow().unwrap(),
-    //                     &format!("else_if_{}", i),
-    //                 );
-    //                 let next_block = if i + 1 < condition_blocks.len() {
-    //                     condition_blocks[i + 1]
-    //                 } else {
-    //                     else_block
-    //                 };
-    //                 self.builder
-    //                     .build_conditional_branch(condition, else_if_block, next_block)
-    //                     .expect("build conditional branch failed");
-    //
-    //                 self.builder.position_at_end(else_if_block);
-    //                 self.build_ir(*body);
-    //                 self.builder
-    //                     .build_unconditional_branch(merge_block)
-    //                     .expect("build unconditional branch failed");
-    //             } else {
-    //                 panic!(
-    //                     "{}",
-    //                     format!("{:#?} is not a else if expression", else_if).red()
-    //                 )
-    //             }
-    //         }
-    //
-    //         self.builder.position_at_end(else_block);
-    //         if let Some(else_expr) = else_expr {
-    //             if let CheckedExpression::Else { body } = *else_expr {
-    //                 self.build_ir(*body);
-    //             } else {
-    //                 panic!(
-    //                     "{}",
-    //                     format!("{:#?} is not a else expression", else_expr).red()
-    //                 )
-    //             }
-    //         }
-    //         self.builder
-    //             .build_unconditional_branch(merge_block)
-    //             .expect("build unconditional branch failed");
-    //
-    //         self.builder.position_at_end(then_block);
-    //         self.builder
-    //             .build_unconditional_branch(merge_block)
-    //             .expect("build unconditional branch failed");
-    //
-    //         self.builder.position_at_end(entry_block);
-    //         self.builder
-    //             .build_conditional_branch(condition, then_block, condition_blocks[0])
-    //             .expect("build conditional branch failed");
-    //     }
-    //
-    //     self.builder.position_at_end(merge_block);
-    // }
+
+    fn llvm_type_from(&self, _type: RawType) -> BasicTypeEnum<'ctx> {
+        match _type {
+            RawType::Unit => {
+                BasicTypeEnum::from(self.zst)
+            }
+            RawType::I32 => {
+                self.context.i32_type().as_basic_type_enum()
+            }
+            RawType::Bool => {
+                self.context.bool_type().as_basic_type_enum()
+            }
+            RawType::F32 => {
+                self.context.f32_type().as_basic_type_enum()
+            }
+        }
+    }
+
+    fn current_block(&self) -> inkwell::basic_block::BasicBlock<'ctx> {
+        self.builder.get_insert_block().unwrap()
+    }
+
     fn build_conditional_val(
         &self,
         condition: Box<CheckedExpression>,
         then: Box<CheckedExpression>,
         else_ifs: Vec<CheckedExpression>,
         else_expr: Option<Box<CheckedExpression>>,
+        _type: RawType,
     ) -> Box<dyn AnyValue + '_> {
         let entry_block = self.builder.get_insert_block().unwrap();
 
@@ -1033,15 +828,15 @@ impl<'ctx> IRBuilder<'ctx> {
         let merge_block = self
             .context
             .append_basic_block(self.current_function.borrow().unwrap(), "merge");
+        self.builder.position_at_end(merge_block);
+        let phi = self.builder.build_phi(self.llvm_type_from(_type), "phi_tmp").unwrap();
 
         self.builder.position_at_end(then_block);
-        if let CheckedExpression::Block { expressions } = *then {
-            for e in expressions {
-                self.build_any_value(e);
-            }
-        } else {
-            panic!("{}", format!("{:#?} is not a block expression", then).red())
-        }
+
+        let val = self.build_valued_block(then.unwrap());
+        let val = BasicValueEnum::try_from(val.as_any_value_enum()).unwrap();
+        phi.add_incoming(&[(&val, self.current_block())]);
+
         self.builder
             .build_unconditional_branch(merge_block)
             .expect("build unconditional branch failed");
@@ -1058,13 +853,9 @@ impl<'ctx> IRBuilder<'ctx> {
 
                 self.builder.position_at_end(else_block);
                 if let CheckedExpression::Else { body } = *else_expr.clone().unwrap() {
-                    if let CheckedExpression::Block { expressions } = *body {
-                        for e in expressions {
-                            self.build_any_value(e);
-                        }
-                    } else {
-                        panic!("{}", format!("{:#?} is not a block expression", body).red())
-                    }
+                    let val = self.build_valued_block(body.unwrap());
+                    let val = BasicValueEnum::try_from(val.as_any_value_enum()).unwrap();
+                    phi.add_incoming(&[(&val, self.current_block())]);
                 } else {
                     panic!(
                         "{}",
@@ -1118,13 +909,10 @@ impl<'ctx> IRBuilder<'ctx> {
                         .expect("build conditional branch failed");
 
                     self.builder.position_at_end(else_if_block);
-                    if let CheckedExpression::Block { expressions } = *body {
-                        for e in expressions {
-                            self.build_any_value(e);
-                        }
-                    } else {
-                        panic!("{}", format!("{:#?} is not a block expression", body).red())
-                    }
+                    let val = self.build_valued_block(body.unwrap());
+                    let val = BasicValueEnum::try_from(val.as_any_value_enum()).unwrap();
+                    phi.add_incoming(&[(&val, self.current_block())]);
+
                     self.builder
                         .build_unconditional_branch(merge_block)
                         .expect("build unconditional branch failed");
@@ -1139,170 +927,9 @@ impl<'ctx> IRBuilder<'ctx> {
             self.builder.position_at_end(else_block);
             if let Some(else_expr) = else_expr {
                 if let CheckedExpression::Else { body } = *else_expr {
-                    if let CheckedExpression::Block { expressions } = *body {
-                        for e in expressions {
-                            self.build_any_value(e);
-                        }
-                    } else {
-                        panic!("{}", format!("{:#?} is not a block expression", body).red())
-                    }
-                } else {
-                    panic!(
-                        "{}",
-                        format!("{:#?} is not a else expression", else_expr).red()
-                    )
-                }
-            }
-            self.builder
-                .build_unconditional_branch(merge_block)
-                .expect("build unconditional branch failed");
-
-            self.builder.position_at_end(then_block);
-            self.builder
-                .build_unconditional_branch(merge_block)
-                .expect("build unconditional branch failed");
-
-            self.builder.position_at_end(entry_block);
-            self.builder
-                .build_conditional_branch(condition, then_block, condition_blocks[0])
-                .expect("build conditional branch failed");
-        }
-
-        self.builder.position_at_end(merge_block);
-        self.new_zst_value()
-    }
-
-    fn build_valued_conditional(
-        &self,
-        condition: Box<CheckedExpression>,
-        then: Box<CheckedExpression>,
-        else_ifs: Vec<CheckedExpression>,
-        else_expr: Option<Box<CheckedExpression>>,
-    ) {
-        let entry_block = self.builder.get_insert_block().unwrap();
-
-        let condition = self
-            .build_basic_value(*condition)
-            .unwrap()
-            .as_basic_value_enum()
-            .into_int_value();
-        let then_block = self
-            .context
-            .append_basic_block(self.current_function.borrow().unwrap(), "then");
-        let merge_block = self
-            .context
-            .append_basic_block(self.current_function.borrow().unwrap(), "merge");
-
-        self.builder.position_at_end(then_block);
-        let then_val =
-            self.build_basic_value(*then).unwrap().as_basic_value_enum();
-        self.builder
-            .build_unconditional_branch(merge_block)
-            .expect("build unconditional branch failed");
-
-        self.builder.position_at_end(merge_block);
-        let current_func_ret_type = self
-            .current_function
-            .borrow()
-            .unwrap()
-            .get_type()
-            .get_return_type()
-            .unwrap();
-
-        let phi = self
-            .builder
-            .build_phi(current_func_ret_type, "phi_tmp")
-            .expect("build phi failed");
-        phi.add_incoming(&[(&then_val.as_basic_value_enum().clone(), then_block)]);
-
-        if else_ifs.len() == 0 {
-            if else_expr.is_some() {
-                let else_block = self
-                    .context
-                    .append_basic_block(self.current_function.borrow().unwrap(), "else");
-                self.builder.position_at_end(entry_block);
-                self.builder
-                    .build_conditional_branch(condition, then_block, else_block)
-                    .expect("build conditional branch failed");
-
-                self.builder.position_at_end(else_block);
-                if let CheckedExpression::Else { body } = *else_expr.clone().unwrap() {
-                    let else_val = self.build_basic_value(*body).unwrap();
-                    phi.add_incoming(&[(&else_val.as_basic_value_enum().clone(), else_block)]);
-                } else {
-                    panic!(
-                        "{}",
-                        format!("{:#?} is not a else expression", else_expr).red()
-                    )
-                }
-                self.builder
-                    .build_unconditional_branch(merge_block)
-                    .expect("build unconditional branch failed");
-            } else {
-                self.builder.position_at_end(entry_block);
-                self.builder
-                    .build_conditional_branch(condition, then_block, merge_block)
-                    .expect("build conditional branch failed");
-            }
-        } else {
-            let condition_blocks: Vec<_> = else_ifs
-                .iter()
-                .enumerate()
-                .map(|(i, _)| {
-                    self.context.append_basic_block(
-                        self.current_function.borrow().unwrap(),
-                        &format!("else_if_condition_{}", i),
-                    )
-                })
-                .collect();
-
-            let else_block = self
-                .context
-                .append_basic_block(self.current_function.borrow().unwrap(), "else");
-
-            for (i, else_if) in else_ifs.into_iter().enumerate() {
-                if let CheckedExpression::ElseIf { condition, body } = else_if {
-                    self.builder.position_at_end(condition_blocks[i]);
-                    let condition = self
-                        .build_basic_value(*condition)
-                        .unwrap()
-                        .as_basic_value_enum()
-                        .into_int_value();
-                    let else_if_block = self.context.append_basic_block(
-                        self.current_function.borrow().unwrap(),
-                        &format!("else_if_{}", i),
-                    );
-                    let next_block = if i + 1 < condition_blocks.len() {
-                        condition_blocks[i + 1]
-                    } else {
-                        else_block
-                    };
-                    self.builder
-                        .build_conditional_branch(condition, else_if_block, next_block)
-                        .expect("build conditional branch failed");
-
-                    self.builder.position_at_end(else_if_block);
-                    let else_if_val = self.build_basic_value(*body).unwrap();
-                    phi.add_incoming(&[(
-                        &else_if_val.as_basic_value_enum().clone(),
-                        else_if_block,
-                    )]);
-                    self.builder
-                        .build_unconditional_branch(merge_block)
-                        .expect("build unconditional branch failed");
-                } else {
-                    panic!(
-                        "{}",
-                        format!("{:#?} is not a else if expression", else_if).red()
-                    )
-                }
-            }
-
-            self.builder.position_at_end(else_block);
-            if let Some(else_expr) = else_expr {
-                if let CheckedExpression::Else { body } = *else_expr {
-                    let else_val = self.build_basic_value(*body).unwrap();
-                    phi.add_incoming(&[(&else_val.as_basic_value_enum().clone(), else_block)]);
+                    let val = self.build_valued_block(body.unwrap());
+                    let val = BasicValueEnum::try_from(val.as_any_value_enum()).unwrap();
+                    phi.add_incoming(&[(&val, self.current_block())]);
                 } else {
                     panic!(
                         "{}",
@@ -1321,41 +948,20 @@ impl<'ctx> IRBuilder<'ctx> {
         }
 
         self.builder.position_at_end(merge_block);
-        self.builder
-            .build_return(Some(&phi.as_basic_value()))
-            .expect("build return failed");
+        Box::from(phi)
     }
 
-    // fn build_block_may_contains_value(
-    //     &self,
-    //     expressions: Vec<CheckedExpression>,
-    // ) -> Option<Box<dyn BasicValue + '_>> {
-    //     if expressions.len() < 2 {
-    //         for e in &expressions[0..expressions.len() - 1] {
-    //             self.build_any_value(e.clone());
-    //         }
-    //     }
-    //     if let Some(last) = expressions.last() {
-    //         self.build_basic_value(last.clone())
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    fn build_block_may_contains_any_value(
+    fn build_valued_block(
         &self,
         expressions: Vec<CheckedExpression>,
     ) -> Box<dyn AnyValue + '_> {
-        if expressions.len() < 2 {
-            for e in &expressions[0..expressions.len() - 1] {
-                self.build_any_value(e.clone());
-            }
+        let scope_guard = ScopeGuard::new(&self.symbol_table);
+
+        let mut res_val = self.new_zst_value();
+        for e in expressions {
+            res_val = self.build_any_value(e);
         }
-        if let Some(last) = expressions.last() {
-            self.build_any_value(last.clone())
-        } else {
-            self.new_zst_value()
-        }
+        res_val
     }
 
     fn new_zst_value(&self) -> Box<dyn AnyValue + '_> {
