@@ -25,6 +25,13 @@ fun get_digit_cube_sum(n: I32) -> I32 {
 
 fun is_narcissistic(n: I32) -> Bool {
     if n == get_digit_cube_sum(n) {
+        var x = 1
+        while n != 0 {
+            if x == 100 {
+                break
+            }
+            x = x + 1
+        }
         true
     } else {
         false
