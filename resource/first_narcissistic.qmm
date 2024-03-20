@@ -33,8 +33,8 @@ fun is_narcissistic(n: I32) -> Bool {
 
 fun main() -> I32 {
     var num = 100
-    while (num < 1000) {
-        if (is_narcissistic(num)) {
+    while num < 1000 {
+        if is_narcissistic(num) {
             break
         }
         num = num + 1

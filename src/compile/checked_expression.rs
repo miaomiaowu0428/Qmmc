@@ -89,9 +89,7 @@ pub enum CheckedExpression {
 impl CheckedExpression {
     pub fn unwrap(self) -> Vec<CheckedExpression> {
         match self {
-            CheckedExpression::Block { expressions } => {
-                expressions
-            }
+            CheckedExpression::Block { expressions } => expressions,
             _ => {
                 vec![self]
             }

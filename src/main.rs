@@ -25,7 +25,7 @@ mod runtime;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "test_if_else";
+static FILE_NAME: &str = "first_narcissistic";
 
 fn main() {
     let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))

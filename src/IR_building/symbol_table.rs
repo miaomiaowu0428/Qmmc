@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use inkwell::values::PointerValue;
 
+#[derive(Debug)]
 pub struct SymbolTable<'ctx> {
     stack: RefCell<Vec<HashMap<String, PointerValue<'ctx>>>>,
 }
