@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::BadToken;
+use TokenType::{BadToken, CharToken};
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
 use TokenType::BreakKeyword;
@@ -36,7 +36,8 @@ use TokenType::WhitespaceToken;
 use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKeyword};
 
 use crate::analyze::lex::TokenType::{
-    ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, ReturnKeyword,
+    ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, LiteralStringToken,
+    ReturnKeyword,
 };
 
 #[derive(Clone)]
@@ -83,13 +84,14 @@ impl Debug for Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // write!(f, "{}", self.text)
         write!(
             f,
             "{}",
             match self.token_type {
                 IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword =>
                     format!("{}", self.text.green()),
+                CharToken => format!("{}", format!("{:?}", self.text).green()),
+                LiteralStringToken => format!("{}", format!("{:?}", self.text).green()),
                 IdentifierToken => format!("{}", self.text.bold()),
                 ValKeyword | VarKeyword | IfKeyword | ElseKeyword | WhileKeyword | LoopKeyword
                 | BreakKeyword | FunKeyword | ReturnKeyword =>
@@ -109,8 +111,10 @@ pub enum TokenType {
 
     IntegerToken,
     FloatPointToken,
+    CharToken,
     TrueKeyword,
     FalseKeyword,
+    LiteralStringToken,
     IdentifierToken,
 
     LeftParenthesisToken,
@@ -148,6 +152,7 @@ pub enum TokenType {
     ContinueToken,
     ColonToken,
     ArrowToken,
+
 }
 
 impl TokenType {
@@ -221,6 +226,8 @@ impl Debug for TokenType {
             ContinueToken => "ContinueToken",
             ColonToken => "ColonToken",
             ArrowToken => "ArrowToken",
+            LiteralStringToken => "LiteralStringToken",
+            CharToken => "CharToken",
         };
         write!(f, "{}", string)
     }

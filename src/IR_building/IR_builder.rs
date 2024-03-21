@@ -18,7 +18,7 @@ use inkwell::values::BasicValue;
 use inkwell::values::BasicValueEnum;
 use inkwell::values::FunctionValue;
 use inkwell::values::{AnyValue, BasicMetadataValueEnum, PointerValue};
-use inkwell::{FloatPredicate, IntPredicate};
+use inkwell::{AddressSpace, FloatPredicate, IntPredicate};
 
 pub struct IRBuilder<'ctx> {
     context: &'ctx Context,
@@ -200,12 +200,9 @@ impl<'ctx> IRBuilder<'ctx> {
                     _ => todo!("{}", "cannot convert to function type".red()),
                 }
             }
-            let fun_type = match *function._type.return_type {
-                RawType::I32 => self.context.i32_type().fn_type(&types, false),
-                RawType::F32 => self.context.f32_type().fn_type(&types, false),
-                RawType::Bool => self.context.bool_type().fn_type(&types, false),
-                RawType::Unit => self.context.void_type().fn_type(&types, false),
-            };
+            let fun_type = self
+                .llvm_type_from(*function._type.return_type)
+                .fn_type(&types, false);
             fun_type
         };
 
@@ -394,6 +391,15 @@ impl<'ctx> IRBuilder<'ctx> {
                     let f32_type = self.context.f32_type();
                     let f32_value = f32_type.const_float(f as f64);
                     Box::from(f32_value)
+                }
+                ConstExpr::Byte(c)=> {
+                    let char_type = self.context.i8_type();
+                    let char_value = char_type.const_int(c as u64, false);
+                    Box::from(char_value)
+                }
+                ConstExpr::Str(s) => {
+                    let str_type = self.context.i8_type().array_type(s.len() as u32);
+                    todo!("{}", "String literal not implemented".red());
                 }
                 ConstExpr::None => {
                     self.diagnostics.report("Invalid literal: None".to_string());
@@ -874,6 +880,12 @@ impl<'ctx> IRBuilder<'ctx> {
             RawType::I32 => self.context.i32_type().as_basic_type_enum(),
             RawType::Bool => self.context.bool_type().as_basic_type_enum(),
             RawType::F32 => self.context.f32_type().as_basic_type_enum(),
+            RawType::Byte => self.context.i8_type().as_basic_type_enum(),
+            RawType::LiteralString => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::default())
+                .as_basic_type_enum(),
         }
     }
 

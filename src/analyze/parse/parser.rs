@@ -6,8 +6,7 @@ use Expression::AssignmentExpression;
 use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
-use TokenType::IdentifierToken;
-use TokenType::IfKeyword;
+use TokenType::{CharToken, IfKeyword};
 use TokenType::IntegerToken;
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
@@ -21,6 +20,7 @@ use TokenType::{
     ArrowToken, BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword,
     ReturnKeyword,
 };
+use TokenType::{IdentifierToken, LiteralStringToken};
 
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::Token;
@@ -407,9 +407,11 @@ impl Parser {
 
     fn parse_literal_expression(&self) -> Expression {
         match self.current().token_type {
-            IntegerToken | FloatPointToken | TrueKeyword | FalseKeyword => LiteralExpression {
-                literal_token: self.move_next(),
-            },
+            IntegerToken | FloatPointToken | CharToken | TrueKeyword | FalseKeyword | LiteralStringToken => {
+                LiteralExpression {
+                    literal_token: self.move_next(),
+                }
+            }
             IdentifierToken if self.peek(1).token_type == LeftParenthesisToken => {
                 self.parse_function_call()
             }

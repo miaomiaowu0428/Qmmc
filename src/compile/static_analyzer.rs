@@ -15,7 +15,7 @@ use crate::compile::compile_time_scope::CompileTimeScope;
 use crate::compile::r#type::FunctionType;
 use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
-use crate::compile::RawType::{Bool, F32, I32};
+use crate::compile::RawType::{Bool, LiteralString, F32, I32, Byte};
 use crate::compile::{FunctionDeclare, RawType};
 
 lazy_static! {
@@ -639,6 +639,8 @@ impl StaticAnalyzer {
                 ConstExpr::I32(_) => I32,
                 ConstExpr::F32(_) => F32,
                 ConstExpr::Bool(_) => Bool,
+                ConstExpr::Byte(_) => Byte,
+                ConstExpr::Str(_) => LiteralString,
                 ConstExpr::None => Unit,
             },
             CheckedExpression::Unary { op, .. } => op.res_type.clone(),

@@ -6,7 +6,7 @@ args = ["watch", "-i", "res/*", "-s", "clear && cargo run"]
 command = "cargo"
 args = ["watch",
     "-i",
-    "res/*",
+    "res/* src/runtime/*",
     "-s",
     "clear && tokei -e *.d"
 ]

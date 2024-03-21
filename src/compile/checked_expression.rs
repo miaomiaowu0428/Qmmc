@@ -1,4 +1,4 @@
-use TokenType::{FalseKeyword, FloatPointToken, IntegerToken, TrueKeyword};
+use TokenType::{CharToken, FalseKeyword, FloatPointToken, IntegerToken, LiteralStringToken, TrueKeyword};
 
 use crate::analyze::lex::{Token, TokenType};
 use crate::compile::binary_operator::BinaryOperator;
@@ -115,6 +115,8 @@ pub enum ConstExpr {
     I32(i32),
     Bool(bool),
     F32(f32),
+    Byte(char),
+    Str(String),
 }
 
 impl From<Token> for ConstExpr {
@@ -124,6 +126,8 @@ impl From<Token> for ConstExpr {
             FloatPointToken => ConstExpr::F32(value.text.parse().unwrap()),
             TrueKeyword => ConstExpr::Bool(true),
             FalseKeyword => ConstExpr::Bool(false),
+            CharToken => ConstExpr::Byte(value.text.chars().next().unwrap()),
+            LiteralStringToken => ConstExpr::Str(value.text),
             _ => panic!("Invalid literal token type"),
         }
     }

@@ -1,0 +1,6 @@
+fun main() -> I32 {
+    var s = "Hello, World!\t\n"
+    var c = 'H'
+    var tab = '\t'
+    0
+}

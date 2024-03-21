@@ -6,6 +6,8 @@ pub enum RawType {
     I32,
     Bool,
     F32,
+    Byte,
+    LiteralString,
 }
 
 #[derive(Debug, Clone, PartialEq)]

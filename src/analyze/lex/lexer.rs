@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use TokenType::AndKeyword;
+use TokenType::{AndKeyword, CharToken, LiteralStringToken};
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
@@ -70,6 +70,11 @@ impl Lexer {
                 self.lex_keyword_or_identifier()
             } else if c.is_whitespace() {
                 self.lex_white_spase()
+            }else if *c == '\'' {
+                self.lex_char()
+            }
+            else if *c == '"' {
+                self.lex_literal_string()
             } else {
                 self.lex_operator()
             };
@@ -83,6 +88,114 @@ impl Lexer {
         ));
         tokens.retain(|t| t.token_type != WhitespaceToken);
         tokens
+    }
+
+    fn lex_char(&self) -> Token {
+        let (start_line, start_column) = (self.line_number(), self.column_number());
+        let mut text = String::new();
+        self.move_next();
+        while let Some(c) = self.current() {
+            if *c == '\\' {
+                self.move_next();
+                match self.current() {
+                    // 处理转义字符
+                    Some('\\') => {
+                        text.push('\\');
+                        self.move_next();
+                    }
+                    Some('\'') => {
+                        text.push('\'');
+                        self.move_next();
+                    }
+                    Some('n') => {
+                        text.push('\n');
+                        self.move_next();
+                    }
+                    Some('t') => {
+                        text.push('\t');
+                        self.move_next();
+                    }
+                    Some('r') => {
+                        text.push('\r');
+                        self.move_next();
+                    }
+                    Some('0') => {
+                        text.push('\0');
+                        self.move_next();
+                    }
+                    Some(_) => {
+                        text.push(*c);
+                    }
+                    None => {}
+                }
+                continue;
+            } else if *c == '\'' {
+                self.move_next();
+                break;
+            }
+            text.push(*c);
+            self.move_next();
+        }
+        Token::new(
+            CharToken,
+            text,
+            start_line,
+            start_column,
+        )
+    }
+
+    fn lex_literal_string(&self) -> Token {
+        let (start_line, start_column) = (self.line_number(), self.column_number());
+        let mut text = String::new();
+        self.move_next();
+        while let Some(c) = self.current() {
+            if *c == '\\' {
+                self.move_next();
+                match self.current() {
+                    // 处理转义字符
+                    Some('\\') => {
+                        text.push('\\');
+                        self.move_next();
+                    }
+                    Some('"') => {
+                        text.push('"');
+                        self.move_next();
+                    }
+                    Some('n') => {
+                        text.push('\n');
+                        self.move_next();
+                    }
+                    Some('t') => {
+                        text.push('\t');
+                        self.move_next();
+                    }
+                    Some('r') => {
+                        text.push('\r');
+                        self.move_next();
+                    }
+                    Some('0') => {
+                        text.push('\0');
+                        self.move_next();
+                    }
+                    Some(_) => {
+                        text.push(*c);
+                    }
+                    None => {}
+                }
+                continue;
+            } else if *c == '"' {
+                self.move_next();
+                break;
+            }
+            text.push(*c);
+            self.move_next();
+        }
+        Token::new(
+            LiteralStringToken,
+            text,
+            start_line,
+            start_column,
+        )
     }
 
     fn lex_number(&self) -> Token {
