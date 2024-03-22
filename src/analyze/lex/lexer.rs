@@ -34,7 +34,7 @@ use TokenType::{
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
-use crate::analyze::lex::TokenType::ArrowToken;
+use crate::analyze::lex::TokenType::{AmpersandToken, ArrowToken};
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -391,6 +391,15 @@ impl Lexer {
                 let c = self.move_next();
                 Token::new(
                     ColonToken,
+                    c.to_string(),
+                    self.line_number(),
+                    self.column_number(),
+                )
+            }
+            '&' => {
+                let c = self.move_next();
+                Token::new(
+                    AmpersandToken,
                     c.to_string(),
                     self.line_number(),
                     self.column_number(),

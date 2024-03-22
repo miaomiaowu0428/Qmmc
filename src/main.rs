@@ -25,7 +25,7 @@ mod runtime;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "test_literal_string";
+static FILE_NAME: &str = "test_pointer";
 
 fn main() {
     let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))
@@ -46,18 +46,19 @@ fn main() {
 
     show_input(&expressions);
 
-    let static_analyzer = Compiler::new();
-    let checked_expressions = static_analyzer.analyse(expressions);
+    let compiler = Compiler::new();
+    let checked_expressions = compiler.analyse(expressions);
 
     show_ByteCode(&checked_expressions);
 
     // show_static_scope(&static_analyzer);
 
-    // if !static_analyzer.diagnostics.is_empty() {
-    //     println!("Static Analysis Diagnostics: ");
-    //     static_analyzer.diagnostics.print();
-    //     println!("==============================");
-    // } else {
+    if !compiler.diagnostics.is_empty() {
+        println!("Static Analysis Diagnostics: ");
+        compiler.diagnostics.print();
+        println!("==============================");
+    }
+    // else {
     //     let context = Context::create();
     //     let module = context.create_module(FILE_NAME);
     //     let builder = context.create_builder();

@@ -15,7 +15,7 @@ use crate::compile::compile_time_scope::CompileTimeScope;
 use crate::compile::r#type::FunctionType;
 use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
-use crate::compile::RawType::{Bool, Char, StringLiteral, F32, I32, Byte};
+use crate::compile::RawType::{Bool, Byte, Char, StringLiteral, F32, I32};
 use crate::compile::{FunctionDeclare, RawType};
 
 lazy_static! {
@@ -659,21 +659,22 @@ impl Compiler {
                     }
                 }
             }
-            CheckedExpression::TypeName { name } => {
-                match name.text.as_str() {
-                    "I32" => I32,
-                    "F32" => F32,
-                    "Bool" => Bool,
-                    "Char" => Char,
-                    "Byte" => Byte,
-                    "()" => Unit,
-                    "Unit" => Unit,
-                    _ => {
-                        self.diagnostics.report(format!("User type {} which you are using is not supported", name.text));
-                        Unit
-                    }
+            CheckedExpression::TypeName { name } => match name.text.as_str() {
+                "I32" => I32,
+                "F32" => F32,
+                "Bool" => Bool,
+                "Char" => Char,
+                "Byte" => Byte,
+                "()" => Unit,
+                "Unit" => Unit,
+                _ => {
+                    self.diagnostics.report(format!(
+                        "User type {} which you are using is not supported",
+                        name.text
+                    ));
+                    Unit
                 }
-            }
+            },
             CheckedExpression::Assignment { .. } => Unit,
             CheckedExpression::Conditional { then, .. } => self.type_of(then),
             CheckedExpression::If { body, .. } => self.type_of(body),

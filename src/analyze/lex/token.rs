@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::BangEqualsToken;
+use TokenType::{AmpersandToken, BangEqualsToken};
 use TokenType::BangToken;
 use TokenType::BreakKeyword;
 use TokenType::ElseKeyword;
@@ -152,6 +152,7 @@ pub enum TokenType {
     ContinueToken,
     ColonToken,
     ArrowToken,
+    AmpersandToken,
 }
 
 impl TokenType {
@@ -160,6 +161,8 @@ impl TokenType {
             PlusToken => 10,
             MinusToken => 10,
             BangToken => 10,
+            StarToken => 9,
+            AmpersandToken => 9,
             _ => 0,
         }
     }
@@ -227,6 +230,7 @@ impl Debug for TokenType {
             ArrowToken => "ArrowToken",
             LiteralStringToken => "LiteralStringToken",
             CharToken => "CharToken",
+            AmpersandToken => "AmpersandToken",
         };
         write!(f, "{}", string)
     }

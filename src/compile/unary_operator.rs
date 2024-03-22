@@ -20,6 +20,14 @@ lazy_static! {
             operand_type: RawType::Bool,
             res_type: RawType::Bool,
         },
+        UnaryOperator {
+            operator_type: UnaryOperatorType::Dereference,
+            operand_type: RawType::Pointer {
+                inner_type: Box::new(RawType::I32),
+            },
+            res_type: RawType::I32,
+        },
+
     ];
 }
 
@@ -33,10 +41,32 @@ pub struct UnaryOperator {
 impl UnaryOperator {
     pub(crate) fn check(op: TokenType, operand_type: &RawType) -> Option<Self> {
         let opt = UnaryOperatorType::from(op);
-        UNARY_OPERATORS
-            .iter()
-            .find(|o| o.operator_type == opt && o.operand_type == *operand_type)
-            .map(|o| o.clone())
+        match opt {
+            UnaryOperatorType::Dereference => {
+                if let RawType::Pointer { inner_type } = operand_type {
+                    Some(UnaryOperator {
+                        operator_type: opt,
+                        operand_type: operand_type.clone(),
+                        res_type: *inner_type.clone(),
+                    })
+                } else {
+                    None
+                }
+            }
+            UnaryOperatorType::Borrowing => {
+                Some(UnaryOperator {
+                    operator_type: opt,
+                    operand_type: operand_type.clone(),
+                    res_type: RawType::Pointer {
+                        inner_type: Box::new(operand_type.clone()),
+                    },
+                })
+            }
+            _ => UNARY_OPERATORS
+                .iter()
+                .find(|o| o.operator_type == opt && o.operand_type == *operand_type)
+                .map(|o| o.clone()),
+        }
     }
 }
 
@@ -45,6 +75,8 @@ pub enum UnaryOperatorType {
     Positive,
     Negation,
     LogicalNegation,
+    Dereference,
+    Borrowing,
 }
 
 impl From<TokenType> for UnaryOperatorType {
@@ -53,6 +85,8 @@ impl From<TokenType> for UnaryOperatorType {
             TokenType::PlusToken => UnaryOperatorType::Positive,
             TokenType::MinusToken => UnaryOperatorType::Negation,
             TokenType::BangToken => UnaryOperatorType::LogicalNegation,
+            TokenType::StarToken => UnaryOperatorType::Dereference,
+            TokenType::AmpersandToken => UnaryOperatorType::Borrowing,
             _ => panic!("Invalid token type for unary operator"),
         }
     }

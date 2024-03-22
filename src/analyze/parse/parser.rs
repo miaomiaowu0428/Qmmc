@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::cell::RefCell;
 use colored::Colorize;
+use std::cell::RefCell;
 
 use Expression::AssignmentExpression;
 use Expression::LiteralExpression;
