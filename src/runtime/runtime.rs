@@ -10,11 +10,11 @@ use RuntimeType::{Bool, I32};
 use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::Token;
 use crate::compile::CheckedExpression::{
-    Assignment, Binary, Block, Break, Call, Continue, FunctionDeclaration, Identifier, If, Literal,
-    Loop, Return, Statement, Unary, While,
+    Assignment, Binary, Block, Break, Call, Continue, FunctionDeclaration, If, Literal, Loop,
+    Return, Statement, Unary, VariableName, While,
 };
 use crate::compile::{
-    BinaryOperator, BinaryOperatorType, CheckedExpression, LiteralExpr, FunctionDeclare, RawType,
+    BinaryOperator, BinaryOperatorType, CheckedExpression, FunctionDeclare, LiteralExpr, RawType,
     UnaryOperator, UnaryOperatorType,
 };
 use crate::runtime::control_command::ControlCommand;

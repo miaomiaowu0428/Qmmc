@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 
-use TokenType::{AndKeyword, CharToken, LiteralStringToken};
 use TokenType::BadToken;
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
@@ -27,6 +26,7 @@ use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhileKeyword;
 use TokenType::WhitespaceToken;
+use TokenType::{AndKeyword, CharToken, LiteralStringToken};
 use TokenType::{
     BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword,
     LessThanToken, LoopKeyword, PercentToken, ReturnKeyword,
@@ -70,10 +70,9 @@ impl Lexer {
                 self.lex_keyword_or_identifier()
             } else if c.is_whitespace() {
                 self.lex_white_spase()
-            }else if *c == '\'' {
+            } else if *c == '\'' {
                 self.lex_char()
-            }
-            else if *c == '"' {
+            } else if *c == '"' {
                 self.lex_literal_string()
             } else {
                 self.lex_operator()
@@ -136,12 +135,7 @@ impl Lexer {
             text.push(*c);
             self.move_next();
         }
-        Token::new(
-            CharToken,
-            text,
-            start_line,
-            start_column,
-        )
+        Token::new(CharToken, text, start_line, start_column)
     }
 
     fn lex_literal_string(&self) -> Token {
@@ -190,12 +184,7 @@ impl Lexer {
             text.push(*c);
             self.move_next();
         }
-        Token::new(
-            LiteralStringToken,
-            text,
-            start_line,
-            start_column,
-        )
+        Token::new(LiteralStringToken, text, start_line, start_column)
     }
 
     fn lex_number(&self) -> Token {

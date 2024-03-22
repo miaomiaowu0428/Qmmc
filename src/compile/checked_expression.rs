@@ -1,4 +1,6 @@
-use TokenType::{CharToken, FalseKeyword, FloatPointToken, IntegerToken, LiteralStringToken, TrueKeyword};
+use TokenType::{
+    CharToken, FalseKeyword, FloatPointToken, IntegerToken, LiteralStringToken, TrueKeyword,
+};
 
 use crate::analyze::lex::{Token, TokenType};
 use crate::compile::binary_operator::BinaryOperator;
@@ -25,7 +27,10 @@ pub enum CheckedExpression {
     Block {
         expressions: Vec<CheckedExpression>,
     },
-    Identifier {
+    VariableName {
+        name: Token,
+    },
+    TypeName {
         name: Token,
     },
     VarDeclare {

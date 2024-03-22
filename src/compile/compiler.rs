@@ -15,7 +15,7 @@ use crate::compile::compile_time_scope::CompileTimeScope;
 use crate::compile::r#type::FunctionType;
 use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
-use crate::compile::RawType::{Bool, StringLiteral, F32, I32, Char};
+use crate::compile::RawType::{Bool, Char, StringLiteral, F32, I32, Byte};
 use crate::compile::{FunctionDeclare, RawType};
 
 lazy_static! {
@@ -157,11 +157,7 @@ impl Compiler {
             }
             let checked_then = self.check_expression(*then_block);
             let if_type = self.type_of(&checked_then);
-            self.check_return_type(
-                &format!("{}", &if_expr).as_str(),
-                &checked_then,
-                &if_type,
-            );
+            self.check_return_type(&format!("{}", &if_expr).as_str(), &checked_then, &if_type);
 
             let mut checked_else_ifs = Vec::new();
             for else_if_block in else_if_blocks {
@@ -419,7 +415,7 @@ impl Compiler {
             Some(s) => s.r#type,
             None => Unit,
         };
-        CheckedExpression::Identifier { name: identifier }
+        CheckedExpression::VariableName { name: identifier }
     }
 
     fn check_unary_expression(
@@ -648,23 +644,33 @@ impl Compiler {
             CheckedExpression::Block { expressions } => {
                 expressions.last().map(|e| self.type_of(e)).unwrap_or(Unit)
             }
-            CheckedExpression::Identifier { name: identifier } => {
-                match self.check_base_type(&identifier.text) {
-                    Some(t) => t,
+            CheckedExpression::VariableName { name: identifier } => {
+                let symbol = self.scope.get_global(&identifier.text);
+                match symbol {
+                    Some(s) => s.r#type,
                     None => {
-                        let symbol = self.scope.get_global(&identifier.text);
-                        match symbol {
-                            Some(s) => s.r#type,
-                            None => {
-                                self.diagnostics.report(format!(
-                                    "{} at ({},{}) is not defined",
-                                    identifier.text.red(),
-                                    identifier.line_num.to_string().red(),
-                                    identifier.column_num.to_string().red()
-                                ));
-                                Unit
-                            }
-                        }
+                        self.diagnostics.report(format!(
+                            "{} at ({},{}) is not defined",
+                            identifier.text.red(),
+                            identifier.line_num.to_string().red(),
+                            identifier.column_num.to_string().red()
+                        ));
+                        Unit
+                    }
+                }
+            }
+            CheckedExpression::TypeName { name } => {
+                match name.text.as_str() {
+                    "I32" => I32,
+                    "F32" => F32,
+                    "Bool" => Bool,
+                    "Char" => Char,
+                    "Byte" => Byte,
+                    "()" => Unit,
+                    "Unit" => Unit,
+                    _ => {
+                        self.diagnostics.report(format!("User type {} which you are using is not supported", name.text));
+                        Unit
                     }
                 }
             }
@@ -677,6 +683,7 @@ impl Compiler {
             CheckedExpression::While { .. } => Unit,
             CheckedExpression::Break => Unit,
             CheckedExpression::Continue => Unit,
+            CheckedExpression::VarDeclare { .. } => Unit,
             CheckedExpression::FunctionDeclaration { name, function } => {
                 todo!("get fun and return the type of the fun")
             }
@@ -700,7 +707,6 @@ impl Compiler {
                 };
                 Unit
             }
-            CheckedExpression::VarDeclare { .. } => Unit,
         }
     }
 
@@ -712,17 +718,6 @@ impl Compiler {
                 format!("{:?}", res_type).green(),
                 format!("{:?}", self.type_of(expression)).red()
             ));
-        }
-    }
-
-    fn check_base_type(&self, name: &str) -> Option<RawType> {
-        match name {
-            "I32" => Some(I32),
-            "F32" => Some(F32),
-            "Bool" => Some(Bool),
-            "()" => Some(Unit),
-            "Unit" => Some(Unit),
-            _ => None,
         }
     }
 }

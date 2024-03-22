@@ -4,7 +4,6 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::{BadToken, CharToken};
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
 use TokenType::BreakKeyword;
@@ -34,6 +33,7 @@ use TokenType::ValKeyword;
 use TokenType::VarKeyword;
 use TokenType::WhitespaceToken;
 use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKeyword};
+use TokenType::{BadToken, CharToken};
 
 use crate::analyze::lex::TokenType::{
     ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, LiteralStringToken,
@@ -152,7 +152,6 @@ pub enum TokenType {
     ContinueToken,
     ColonToken,
     ArrowToken,
-
 }
 
 impl TokenType {

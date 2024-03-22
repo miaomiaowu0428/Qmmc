@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
+use colored::Colorize;
 
 use Expression::AssignmentExpression;
 use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
-use TokenType::{CharToken, IfKeyword};
 use TokenType::IntegerToken;
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
@@ -20,6 +20,7 @@ use TokenType::{
     ArrowToken, BreakKeyword, ColonToken, CommaToken, ContinueToken, FalseKeyword, FunKeyword,
     ReturnKeyword,
 };
+use TokenType::{CharToken, IfKeyword};
 use TokenType::{IdentifierToken, LiteralStringToken};
 
 use crate::analyze::diagnostic::DiagnosticBag;
@@ -78,7 +79,7 @@ impl Parser {
             },
             FunKeyword => self.parse_function_declaration(),
             ReturnKeyword => self.parse_return_expression(),
-            _ => self.parse_single_expr_or_block(0),
+            _ => self.parse_operator_expression(0),
         };
         match self.current().token_type {
             TokenType::SemicolonToken => Statement {
@@ -250,8 +251,8 @@ impl Parser {
 
     fn parse_while_expression(&self) -> Expression {
         let while_token = self.move_next();
-        let condition_expr = self.parse_single_expr_or_block(0);
-        let body_expr = self.parse_if_expr_or_block();
+        let condition_expr = self.parse_operator_expression(0);
+        let body_expr = self.parse_block();
         Expression::WhileExpression {
             while_token,
             condition: Box::new(condition_expr),
@@ -270,7 +271,7 @@ impl Parser {
     fn parse_conditional_branch_expression(&self) -> Expression {
         let if_token = self.match_token(|t| t.token_type == IfKeyword, vec![IfKeyword]);
         // let if_token = self.move_next();
-        let condition_expr = self.parse_single_expr_or_block(0);
+        let condition_expr = self.parse_operator_expression(0);
         let true_block = self.parse_block();
         let if_expr = Box::new(Expression::IfExpression {
             if_token,
@@ -311,7 +312,7 @@ impl Parser {
             |t| t.token_type == TokenType::IfKeyword,
             vec![TokenType::IfKeyword],
         );
-        let condition_expr = self.parse_single_expr_or_block(0);
+        let condition_expr = self.parse_operator_expression(0);
         let body_expr = self.parse_block();
         Expression::ElseIfExpression {
             else_token,
@@ -329,14 +330,6 @@ impl Parser {
             identifier_token,
             equals_token,
             expression: Box::new(expression),
-        }
-    }
-
-    fn parse_single_expr_or_block(&self, priority: i32) -> Expression {
-        match self.current().token_type {
-            LeftBraceToken => self.parse_block(),
-            ValKeyword | VarKeyword => self.parse_expression(),
-            _ => self.parse_operator_expression(priority),
         }
     }
 
@@ -396,7 +389,7 @@ impl Parser {
         } else {
             let op = self.current();
             self.move_next();
-            let operand = self.parse_single_expr_or_block(unary_priority);
+            let operand = self.parse_operator_expression(unary_priority);
             left = UnaryExpression {
                 operator_token: op,
                 operand: Box::new(operand),
@@ -407,11 +400,10 @@ impl Parser {
 
     fn parse_literal_expression(&self) -> Expression {
         match self.current().token_type {
-            IntegerToken | FloatPointToken | CharToken | TrueKeyword | FalseKeyword | LiteralStringToken => {
-                LiteralExpression {
-                    literal_token: self.move_next(),
-                }
-            }
+            IntegerToken | FloatPointToken | CharToken | TrueKeyword | FalseKeyword
+            | LiteralStringToken => LiteralExpression {
+                literal_token: self.move_next(),
+            },
             IdentifierToken if self.peek(1).token_type == LeftParenthesisToken => {
                 self.parse_function_call()
             }
