@@ -10,12 +10,12 @@ use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::{Token, TokenType};
 use crate::analyze::parse::{Block, Expression, IdentifierTypePair};
 use crate::compile::binary_operator::BinaryOperator;
-use crate::compile::checked_expression::{CheckedExpression, ConstExpr};
+use crate::compile::checked_expression::{CheckedExpression, LiteralExpr};
 use crate::compile::compile_time_scope::CompileTimeScope;
 use crate::compile::r#type::FunctionType;
 use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
-use crate::compile::RawType::{Bool, LiteralString, F32, I32, Byte};
+use crate::compile::RawType::{Bool, StringLiteral, F32, I32, Char};
 use crate::compile::{FunctionDeclare, RawType};
 
 lazy_static! {
@@ -23,12 +23,12 @@ lazy_static! {
         vec!["print".to_string(), "println".to_string()];
 }
 
-pub struct StaticAnalyzer {
+pub struct Compiler {
     pub scope: Rc<CompileTimeScope>,
     pub diagnostics: DiagnosticBag,
 }
 
-impl StaticAnalyzer {
+impl Compiler {
     pub fn new() -> Self {
         Self {
             scope: Rc::new(CompileTimeScope::new_global()),
@@ -55,7 +55,7 @@ impl StaticAnalyzer {
                 expression: Box::new(self.check_expression(expression.clone())),
             },
             Expression::LiteralExpression { literal_token } => CheckedExpression::Literal {
-                value: ConstExpr::from(literal_token),
+                value: LiteralExpr::from(literal_token),
             },
             Expression::IdentifierExpression { identifier_token } => {
                 self.check_identifier_expression(identifier_token)
@@ -160,7 +160,7 @@ impl StaticAnalyzer {
             self.check_return_type(
                 &format!("{}", &if_expr).as_str(),
                 &checked_then,
-                if_type.clone(),
+                &if_type,
             );
 
             let mut checked_else_ifs = Vec::new();
@@ -298,7 +298,7 @@ impl StaticAnalyzer {
                     format!("{:?}", r#type).red()
                 ));
                 CheckedExpression::Literal {
-                    value: ConstExpr::None,
+                    value: LiteralExpr::None,
                 }
             }
             Some(s) => {
@@ -307,14 +307,14 @@ impl StaticAnalyzer {
                     identifier_token.text
                 ));
                 CheckedExpression::Literal {
-                    value: ConstExpr::None,
+                    value: LiteralExpr::None,
                 }
             }
             None => {
                 self.diagnostics
                     .report(format!("undefined variable {}", identifier_token.text));
                 CheckedExpression::Literal {
-                    value: ConstExpr::None,
+                    value: LiteralExpr::None,
                 }
             }
         }
@@ -387,7 +387,7 @@ impl StaticAnalyzer {
                 self.scope
                     .set_local(&identifier_token.text, VariableSymbol::new_immut(Unit));
                 CheckedExpression::Literal {
-                    value: ConstExpr::None,
+                    value: LiteralExpr::None,
                 }
             }
         }
@@ -473,7 +473,7 @@ impl StaticAnalyzer {
                 },
                 param_names: params.iter().map(|p| p.name.text.clone()).collect(),
                 body: CheckedExpression::Literal {
-                    value: ConstExpr::None,
+                    value: LiteralExpr::None,
                 },
             },
         );
@@ -530,14 +530,14 @@ impl StaticAnalyzer {
             for e in block.expressions.borrow().iter() {
                 let checked_expression = self.check_expression(e.clone());
                 if let CheckedExpression::Return { expression } = &checked_expression {
-                    self.check_return_type(name, &expression, res_type.clone());
+                    self.check_return_type(name, &expression, &res_type);
                 } else {
-                    self.check_inner_return_type(name, &checked_expression, res_type);
+                    self.check_inner_return_type(name, &checked_expression, &res_type);
                 }
                 expressions.push(checked_expression);
             }
             if let Some(e) = expressions.last() {
-                self.check_return_type(name, e, res_type);
+                self.check_return_type(name, e, &res_type);
             }
         }
         CheckedExpression::Block { expressions }
@@ -547,23 +547,23 @@ impl StaticAnalyzer {
         &self,
         name: &str,
         expression: &CheckedExpression,
-        res_type: RawType,
+        res_type: &RawType,
     ) {
         match expression {
             CheckedExpression::Block { expressions } => {
                 for e in expressions {
-                    self.check_inner_return_type(name, e, res_type.clone());
+                    self.check_inner_return_type(name, e, &res_type);
                 }
             }
             CheckedExpression::Return { expression } => {
-                self.check_return_type(name, expression, res_type);
+                self.check_return_type(name, expression, &res_type);
             }
             CheckedExpression::If {
                 condition,
                 body: then,
                 r#else,
             } => {
-                self.check_inner_return_type(name, then, res_type.clone());
+                self.check_inner_return_type(name, then, &res_type);
                 if let Some(e) = r#else {
                     self.check_inner_return_type(name, e, res_type);
                 }
@@ -625,7 +625,7 @@ impl StaticAnalyzer {
                         name.column_num.to_string().red()
                     ));
                     CheckedExpression::Literal {
-                        value: ConstExpr::None,
+                        value: LiteralExpr::None,
                     }
                 }
             }
@@ -636,12 +636,12 @@ impl StaticAnalyzer {
         match expression {
             CheckedExpression::Statement { .. } => Unit,
             CheckedExpression::Literal { value } => match value {
-                ConstExpr::I32(_) => I32,
-                ConstExpr::F32(_) => F32,
-                ConstExpr::Bool(_) => Bool,
-                ConstExpr::Byte(_) => Byte,
-                ConstExpr::Str(_) => LiteralString,
-                ConstExpr::None => Unit,
+                LiteralExpr::I32(_) => I32,
+                LiteralExpr::F32(_) => F32,
+                LiteralExpr::Bool(_) => Bool,
+                LiteralExpr::Byte(_) => Char,
+                LiteralExpr::Str(_) => StringLiteral,
+                LiteralExpr::None => Unit,
             },
             CheckedExpression::Unary { op, .. } => op.res_type.clone(),
             CheckedExpression::Binary { op, .. } => op.res_type.clone(),
@@ -704,8 +704,8 @@ impl StaticAnalyzer {
         }
     }
 
-    fn check_return_type(&self, name: &str, expression: &CheckedExpression, res_type: RawType) {
-        if self.type_of(expression) != res_type {
+    fn check_return_type(&self, name: &str, expression: &CheckedExpression, res_type: &RawType) {
+        if self.type_of(expression) != *res_type {
             self.diagnostics.report(format!(
                 "return type mismatch in fun {}, expected {}, given {}",
                 name.red(),

@@ -14,7 +14,7 @@ use crate::compile::CheckedExpression::{
     Loop, Return, Statement, Unary, While,
 };
 use crate::compile::{
-    BinaryOperator, BinaryOperatorType, CheckedExpression, ConstExpr, FunctionDeclare, RawType,
+    BinaryOperator, BinaryOperatorType, CheckedExpression, LiteralExpr, FunctionDeclare, RawType,
     UnaryOperator, UnaryOperatorType,
 };
 use crate::runtime::control_command::ControlCommand;

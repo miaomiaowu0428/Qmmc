@@ -11,7 +11,7 @@ pub enum CheckedExpression {
         expression: Box<CheckedExpression>,
     },
     Literal {
-        value: ConstExpr,
+        value: LiteralExpr,
     },
     Unary {
         op: UnaryOperator,
@@ -110,7 +110,7 @@ impl PartialEq for Parameter {
 }
 
 #[derive(Debug, Clone)]
-pub enum ConstExpr {
+pub enum LiteralExpr {
     None,
     I32(i32),
     Bool(bool),
@@ -119,15 +119,15 @@ pub enum ConstExpr {
     Str(String),
 }
 
-impl From<Token> for ConstExpr {
+impl From<Token> for LiteralExpr {
     fn from(value: Token) -> Self {
         match value.token_type {
-            IntegerToken => ConstExpr::I32(value.text.parse().unwrap()),
-            FloatPointToken => ConstExpr::F32(value.text.parse().unwrap()),
-            TrueKeyword => ConstExpr::Bool(true),
-            FalseKeyword => ConstExpr::Bool(false),
-            CharToken => ConstExpr::Byte(value.text.chars().next().unwrap()),
-            LiteralStringToken => ConstExpr::Str(value.text),
+            IntegerToken => LiteralExpr::I32(value.text.parse().unwrap()),
+            FloatPointToken => LiteralExpr::F32(value.text.parse().unwrap()),
+            TrueKeyword => LiteralExpr::Bool(true),
+            FalseKeyword => LiteralExpr::Bool(false),
+            CharToken => LiteralExpr::Byte(value.text.chars().next().unwrap()),
+            LiteralStringToken => LiteralExpr::Str(value.text),
             _ => panic!("Invalid literal token type"),
         }
     }

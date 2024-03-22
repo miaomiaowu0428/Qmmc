@@ -185,7 +185,7 @@ lazy_static! {
     ];
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct BinaryOperator {
     pub operator_type: BinaryOperatorType,
     pub left_type: RawType,

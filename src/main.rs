@@ -14,7 +14,7 @@ use inkwell::context::Context;
 pub use crate::analyze::lex::Lexer;
 use crate::analyze::parse::Expression;
 pub use crate::analyze::parse::Parser;
-use crate::compile::{CheckedExpression, StaticAnalyzer};
+use crate::compile::{CheckedExpression, Compiler};
 use crate::IR_building::IRBuilder;
 
 mod IR_building;
@@ -46,7 +46,7 @@ fn main() {
 
     show_input(&expressions);
 
-    let static_analyzer = StaticAnalyzer::new();
+    let static_analyzer = Compiler::new();
     let checked_expressions = static_analyzer.analyse(expressions);
 
     show_ByteCode(&checked_expressions);
@@ -136,7 +136,7 @@ fn show_input(expressions: &Vec<Expression>) {
     println!("==============================");
 }
 
-fn show_static_scope(static_analyzer: &StaticAnalyzer) {
+fn show_static_scope(static_analyzer: &Compiler) {
     println!("\n\nScope:\n{:#?}", static_analyzer.scope);
 }
 

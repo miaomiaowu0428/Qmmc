@@ -1,13 +1,16 @@
 use crate::compile::CheckedExpression;
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RawType {
     Unit,
     I32,
     Bool,
     F32,
+    Char,
     Byte,
-    LiteralString,
+    Array { inner_type: Box<RawType>, size: i32 },
+    Pointer { inner_type: Box<RawType> },
+    StringLiteral,
 }
 
 #[derive(Debug, Clone, PartialEq)]
