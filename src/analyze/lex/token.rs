@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display};
 
 use colored::Colorize;
 
-use TokenType::{AmpersandToken, BangEqualsToken};
+use TokenType::{AmpersandToken, BangEqualsToken, ConstKeyword, MutKeyword};
 use TokenType::BangToken;
 use TokenType::BreakKeyword;
 use TokenType::ElseKeyword;
@@ -153,6 +153,9 @@ pub enum TokenType {
     ColonToken,
     ArrowToken,
     AmpersandToken,
+
+    MutKeyword,
+    ConstKeyword,
 }
 
 impl TokenType {
@@ -231,6 +234,8 @@ impl Debug for TokenType {
             LiteralStringToken => "LiteralStringToken",
             CharToken => "CharToken",
             AmpersandToken => "AmpersandToken",
+            MutKeyword => "MutKeyword",
+            ConstKeyword => "ConstKeyword",
         };
         write!(f, "{}", string)
     }
@@ -238,6 +243,6 @@ impl Debug for TokenType {
 
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "",)
+        write!(f, "", )
     }
 }

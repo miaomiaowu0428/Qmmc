@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use TokenType::BadToken;
+use TokenType::{BadToken, MutKeyword};
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
 use TokenType::ElseKeyword;
@@ -34,7 +34,7 @@ use TokenType::{
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
-use crate::analyze::lex::TokenType::{AmpersandToken, ArrowToken};
+use crate::analyze::lex::TokenType::{AmpersandToken, ArrowToken, ConstKeyword};
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -216,6 +216,8 @@ impl Lexer {
             "continue" => ContinueToken,
             "fun" => FunKeyword,
             "return" => ReturnKeyword,
+            "mut" => MutKeyword,
+            "const" => ConstKeyword,
             _ => IdentifierToken,
         };
         Token::new(token_type, text, start_line, start_column)
