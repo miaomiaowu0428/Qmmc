@@ -452,6 +452,18 @@ impl Compiler {
         }
     }
 
+    fn check_type_name(&self, expr: Expression) -> Result<RawType, ()> {
+        match expr {
+            Expression::IdentifierExpression { identifier_token: name } => {
+                Ok(self.type_of(&CheckedExpression::TypeName { name }))
+            }
+            _ => {
+                self.diagnostics.report(format!("{} is not a type name", expr));
+                Err(())
+            }
+        }
+    }
+
     fn check_function_declaration(
         &self,
         identifier: Token,
@@ -464,7 +476,14 @@ impl Compiler {
             .map(|p| self.check_expression(p.clone().type_description))
             .map(|p| self.type_of(&p))
             .collect();
-        let checked_res_type = self.check_expression(*res_type_description);
+        let checked_res_type = self.check_type_name(*res_type_description.clone());
+        let checked_res_type = match checked_res_type {
+            Ok(t) => t,
+            Err(_) => {
+                self.diagnostics.report(format!("{} is not a type name", res_type_description));
+                Unit
+            }
+        };
 
         //先把自己的声明添加到现在的scope里
         //为了避免递归调用时找不到自己的声明, 先声明一个空的函数
@@ -475,7 +494,7 @@ impl Compiler {
             FunctionDeclare {
                 _type: FunctionType {
                     param_types: parameter_types.clone(),
-                    return_type: Box::from(self.type_of(&checked_res_type)),
+                    return_type: Box::from(checked_res_type.clone()),
                 },
                 param_names: params.iter().map(|p| p.name.text.clone()).collect(),
                 body: CheckedExpression::Literal {
@@ -494,11 +513,11 @@ impl Compiler {
         let checked_body = child_scope.check_function_body(
             &*identifier.text,
             body,
-            child_scope.type_of(&checked_res_type),
+            checked_res_type.clone(),
         );
         self.diagnostics.append(child_scope.diagnostics.clone());
 
-        let res_type = self.type_of(&checked_res_type);
+        let res_type = checked_res_type.clone();
 
         let _type = FunctionType {
             param_types: parameter_types.clone(),

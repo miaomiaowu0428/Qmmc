@@ -1,3 +1,5 @@
-var x = 100
-val y = &x
-val z = *y
+fun main() -> Unit{
+    var x = 100
+    val y = &x
+    val z = *y
+}
