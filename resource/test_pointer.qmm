@@ -1,5 +1,6 @@
-fun main() -> Unit{
+fun main() -> I32 {
     var x = 100
     val y = &x
     val z = *y
+    z
 }

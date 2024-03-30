@@ -850,6 +850,9 @@ impl<'ctx> IRBuilder<'ctx> {
             RawType::Bool => self
                 .builder
                 .build_alloca(self.context.bool_type(), &name.text),
+            RawType::Pointer { inner_type } => self
+                .builder
+                .build_alloca(self.llvm_type_from(*inner_type).ptr_type(AddressSpace::default()), &name.text),
             _ => todo!(
                 "{}",
                 format!("{}{:#?}", "cannot convert to alloca type", _type).red()
