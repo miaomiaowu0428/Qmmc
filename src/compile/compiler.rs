@@ -425,6 +425,16 @@ impl Compiler {
     ) -> CheckedExpression {
         let checked_operand = self.check_expression(*operand);
         let operand_type = self.type_of(&checked_operand);
+
+        if operator_token.token_type == TokenType::AmpersandToken {
+            if let CheckedExpression::VariableName { name } = &checked_operand {} else {
+                self.diagnostics.report(format!(
+                    "can only take address of variable, but {:?} given",
+                    checked_operand
+                ));
+            }
+        }
+
         let op = UnaryOperator::check(operator_token.token_type, &operand_type);
         match op {
             Some(op) => CheckedExpression::Unary {

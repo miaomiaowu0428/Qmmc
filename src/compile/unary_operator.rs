@@ -27,7 +27,6 @@ lazy_static! {
             },
             res_type: RawType::I32,
         },
-
     ];
 }
 
@@ -53,15 +52,13 @@ impl UnaryOperator {
                     None
                 }
             }
-            UnaryOperatorType::Borrowing => {
-                Some(UnaryOperator {
-                    operator_type: opt,
-                    operand_type: operand_type.clone(),
-                    res_type: RawType::Pointer {
-                        inner_type: Box::new(operand_type.clone()),
-                    },
-                })
-            }
+            UnaryOperatorType::AddressOf => Some(UnaryOperator {
+                operator_type: opt,
+                operand_type: operand_type.clone(),
+                res_type: RawType::Pointer {
+                    inner_type: Box::new(operand_type.clone()),
+                },
+            }),
             _ => UNARY_OPERATORS
                 .iter()
                 .find(|o| o.operator_type == opt && o.operand_type == *operand_type)
@@ -76,7 +73,7 @@ pub enum UnaryOperatorType {
     Negation,
     LogicalNegation,
     Dereference,
-    Borrowing,
+    AddressOf,
 }
 
 impl From<TokenType> for UnaryOperatorType {
@@ -86,7 +83,7 @@ impl From<TokenType> for UnaryOperatorType {
             TokenType::MinusToken => UnaryOperatorType::Negation,
             TokenType::BangToken => UnaryOperatorType::LogicalNegation,
             TokenType::StarToken => UnaryOperatorType::Dereference,
-            TokenType::AmpersandToken => UnaryOperatorType::Borrowing,
+            TokenType::AmpersandToken => UnaryOperatorType::AddressOf,
             _ => panic!("Invalid token type for unary operator"),
         }
     }

@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 
-use TokenType::{AsKeyword, BadToken, MutKeyword};
 use TokenType::BangEqualsToken;
 use TokenType::BangToken;
 use TokenType::ElseKeyword;
@@ -27,6 +26,7 @@ use TokenType::VarKeyword;
 use TokenType::WhileKeyword;
 use TokenType::WhitespaceToken;
 use TokenType::{AndKeyword, CharToken, LiteralStringToken};
+use TokenType::{AsKeyword, BadToken, MutKeyword};
 use TokenType::{
     BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword,
     LessThanToken, LoopKeyword, PercentToken, ReturnKeyword,

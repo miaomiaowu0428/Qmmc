@@ -2,7 +2,6 @@
 
 use std::fmt::Display;
 
-use Expression::{BinaryExpression, Type};
 use Expression::BracketedExpression;
 use Expression::IdentifierExpression;
 use Expression::LiteralExpression;
@@ -10,6 +9,7 @@ use Expression::ParenthesizedExpression;
 use Expression::Statement;
 use Expression::UnaryExpression;
 use Expression::{AssignmentExpression, ContinueExpression, FunctionCallExpression};
+use Expression::{BinaryExpression, Type};
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::parse::block::Block;
@@ -497,7 +497,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} {} ", indent_str, fun_token, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -507,7 +507,7 @@ impl Expression {
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
-                write!(f, ") ", )?;
+                write!(f, ") ",)?;
                 write!(f, "-> ")?;
                 write!(f, "{} ", type_description)?;
                 body.format_inline(f, indent)
@@ -525,7 +525,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} ", indent_str, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -538,7 +538,15 @@ impl Expression {
                 write!(f, ")")
             }
             Type { tokens } => {
-                write!(f, "{}", tokens.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(" "))
+                write!(
+                    f,
+                    "{}",
+                    tokens
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
             }
             FunctionTypeExpression {
                 lp,
@@ -699,7 +707,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{} {} ", fun_token, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -709,7 +717,7 @@ impl Expression {
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
-                write!(f, ") ", )?;
+                write!(f, ") ",)?;
                 write!(f, "-> ")?;
                 write!(f, "{} ", type_description)?;
                 body.format_inline(f, indent)
@@ -727,7 +735,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} ", indent_str, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -740,7 +748,15 @@ impl Expression {
                 write!(f, ")")
             }
             Type { tokens } => {
-                write!(f, "{}", tokens.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(" "))
+                write!(
+                    f,
+                    "{}",
+                    tokens
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
             }
             FunctionTypeExpression {
                 lp,

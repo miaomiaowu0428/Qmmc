@@ -19,6 +19,7 @@ use inkwell::values::BasicValueEnum;
 use inkwell::values::FunctionValue;
 use inkwell::values::{AnyValue, BasicMetadataValueEnum, PointerValue};
 use inkwell::{AddressSpace, FloatPredicate, IntPredicate};
+use inkwell::types::BasicTypeEnum::PointerType;
 
 pub struct IRBuilder<'ctx> {
     context: &'ctx Context,
@@ -236,7 +237,7 @@ impl<'ctx> IRBuilder<'ctx> {
                     format!("{}{:#?}{}", "cannot convert", T, " to function type").red()
                 ),
             }
-            .unwrap();
+                .unwrap();
             self.builder
                 .build_store(alloca, arg)
                 .expect("build store failed");
@@ -451,7 +452,17 @@ impl<'ctx> IRBuilder<'ctx> {
                         self.new_zst_value()
                     }
                 }
-
+                (UnaryOperatorType::AddressOf, _) => {
+                    Box::from(if let CheckedExpression::VariableName { name } = *operand {
+                        let var = self
+                            .symbol_table
+                            .get(&name.text)
+                            .expect(&format!("{} not found", name.text.red()));
+                        var
+                    } else {
+                        panic!("can only take address of variable");
+                    })
+                }
                 _ => todo!(
                     "{}{:#?}",
                     "Unary operator not implemented for ".red(),
@@ -626,69 +637,69 @@ impl<'ctx> IRBuilder<'ctx> {
                         Box::from(res)
                     }
                     (RawType::F32, RawType::F32)
-                        if vec![
-                            BinaryOperatorType::Addition,
-                            BinaryOperatorType::Subtraction,
-                            BinaryOperatorType::Multiplication,
-                            BinaryOperatorType::Division,
-                            BinaryOperatorType::Remainder,
-                        ]
+                    if vec![
+                        BinaryOperatorType::Addition,
+                        BinaryOperatorType::Subtraction,
+                        BinaryOperatorType::Multiplication,
+                        BinaryOperatorType::Division,
+                        BinaryOperatorType::Remainder,
+                    ]
                         .contains(&op.operator_type)
-                            == false =>
-                    {
-                        let left = self.build_basic_value(*left).unwrap();
-                        let right = self.build_basic_value(*right).unwrap();
-                        let res = match op.operator_type {
-                            BinaryOperatorType::Addition => {
-                                let res = self.builder.build_float_add(
-                                    left.as_basic_value_enum().into_float_value(),
-                                    right.as_basic_value_enum().into_float_value(),
-                                    "add",
-                                );
-                                res.expect("build float add failed")
-                            }
-                            BinaryOperatorType::Subtraction => {
-                                let res = self.builder.build_float_sub(
-                                    left.as_basic_value_enum().into_float_value(),
-                                    right.as_basic_value_enum().into_float_value(),
-                                    "sub",
-                                );
-                                res.expect("build float sub failed")
-                            }
-                            BinaryOperatorType::Multiplication => {
-                                let res = self.builder.build_float_mul(
-                                    left.as_basic_value_enum().into_float_value(),
-                                    right.as_basic_value_enum().into_float_value(),
-                                    "mul",
-                                );
-                                res.expect("build float mul failed")
-                            }
-                            BinaryOperatorType::Division => {
-                                let res = self.builder.build_float_div(
-                                    left.as_basic_value_enum().into_float_value(),
-                                    right.as_basic_value_enum().into_float_value(),
-                                    "div",
-                                );
-                                res.expect("build float div failed")
-                            }
-                            BinaryOperatorType::Remainder => {
-                                let res = self.builder.build_float_rem(
-                                    left.as_basic_value_enum().into_float_value(),
-                                    right.as_basic_value_enum().into_float_value(),
-                                    "mod",
-                                );
-                                res.expect("build float mod failed")
-                            }
-                            _ => todo!(
-                                "{}: {:?} {:#?} {:?}",
-                                "Binary operator not implemented for ".red(),
-                                op.clone().left_type,
-                                op.clone(),
-                                op.clone().right_type
-                            ),
-                        };
-                        Box::from(res)
-                    }
+                        == false =>
+                        {
+                            let left = self.build_basic_value(*left).unwrap();
+                            let right = self.build_basic_value(*right).unwrap();
+                            let res = match op.operator_type {
+                                BinaryOperatorType::Addition => {
+                                    let res = self.builder.build_float_add(
+                                        left.as_basic_value_enum().into_float_value(),
+                                        right.as_basic_value_enum().into_float_value(),
+                                        "add",
+                                    );
+                                    res.expect("build float add failed")
+                                }
+                                BinaryOperatorType::Subtraction => {
+                                    let res = self.builder.build_float_sub(
+                                        left.as_basic_value_enum().into_float_value(),
+                                        right.as_basic_value_enum().into_float_value(),
+                                        "sub",
+                                    );
+                                    res.expect("build float sub failed")
+                                }
+                                BinaryOperatorType::Multiplication => {
+                                    let res = self.builder.build_float_mul(
+                                        left.as_basic_value_enum().into_float_value(),
+                                        right.as_basic_value_enum().into_float_value(),
+                                        "mul",
+                                    );
+                                    res.expect("build float mul failed")
+                                }
+                                BinaryOperatorType::Division => {
+                                    let res = self.builder.build_float_div(
+                                        left.as_basic_value_enum().into_float_value(),
+                                        right.as_basic_value_enum().into_float_value(),
+                                        "div",
+                                    );
+                                    res.expect("build float div failed")
+                                }
+                                BinaryOperatorType::Remainder => {
+                                    let res = self.builder.build_float_rem(
+                                        left.as_basic_value_enum().into_float_value(),
+                                        right.as_basic_value_enum().into_float_value(),
+                                        "mod",
+                                    );
+                                    res.expect("build float mod failed")
+                                }
+                                _ => todo!(
+                                    "{}: {:?} {:#?} {:?}",
+                                    "Binary operator not implemented for ".red(),
+                                    op.clone().left_type,
+                                    op.clone(),
+                                    op.clone().right_type
+                                ),
+                            };
+                            Box::from(res)
+                        }
                     (RawType::F32, RawType::F32) => {
                         let left = self.build_basic_value(*left).unwrap();
                         let right = self.build_basic_value(*right).unwrap();
@@ -829,7 +840,7 @@ impl<'ctx> IRBuilder<'ctx> {
                 format!("{}{:#?}", "cannot convert to alloca type", _type).red()
             ),
         }
-        .unwrap();
+            .unwrap();
 
         self.symbol_table.insert(name.text.clone(), alloca);
 
@@ -854,7 +865,7 @@ impl<'ctx> IRBuilder<'ctx> {
                         .unwrap()
                         .as_any_value_enum(),
                 )
-                .unwrap(),
+                    .unwrap(),
             );
         }
 
