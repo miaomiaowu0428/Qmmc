@@ -452,6 +452,21 @@ impl<'ctx> IRBuilder<'ctx> {
                         self.new_zst_value()
                     }
                 }
+                (UnaryOperatorType::Dereference, RawType::Pointer { inner_type }) => {
+                    // copilot 写的, 我也不知道对不对
+                    let v = self.build_basic_value(*operand).unwrap();
+                    if let BasicValueEnum::PointerValue(p) = v.as_basic_value_enum() {
+                        Box::from(
+                            self.builder
+                                .build_load(p, "load")
+                                .expect("build load failed"),
+                        )
+                    } else {
+                        self.diagnostics
+                            .report(format!("'load' is not defined for {:?}", v));
+                        self.new_zst_value()
+                    }
+                }
                 (UnaryOperatorType::AddressOf, _) => {
                     Box::from(if let CheckedExpression::VariableName { name } = *operand {
                         let var = self
