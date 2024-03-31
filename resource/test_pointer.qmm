@@ -1,6 +1,9 @@
 fun main() -> I32 {
-    var x = 100
-    val y = &x
-    val z = *y
-    z
+    var x1 = 100
+    var x2 = 10
+    val y1 = &x1
+    val y2 = &x2
+    val z1 = *y1
+    val z2 = *y2
+    z1 + z2
 }

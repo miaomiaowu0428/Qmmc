@@ -12,3 +12,7 @@ args = ["watch",
 ]
 
 
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+

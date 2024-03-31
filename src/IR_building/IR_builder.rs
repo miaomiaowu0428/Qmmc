@@ -50,6 +50,29 @@ impl<'ctx> IRBuilder<'ctx> {
         }
     }
 
+    pub fn import_lib_func(&self) {
+        let i32_type = self.context.i32_type();
+        let f32_type = self.context.f32_type();
+        let bool_type = self.context.bool_type();
+        let void_type = self.context.void_type();
+        let i8_type = self.context.i8_type();
+        let i8_ptr_type = i8_type.ptr_type(AddressSpace::default());
+        let i8_ptr_ptr_type = i8_ptr_type.ptr_type(AddressSpace::default());
+        let i32_ptr_type = i32_type.ptr_type(AddressSpace::default());
+        let f32_ptr_type = f32_type.ptr_type(AddressSpace::default());
+        let bool_ptr_type = bool_type.ptr_type(AddressSpace::default());
+
+        let printf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
+        let printf_func = self.module.add_function("printf", printf_type, None);
+        let scanf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
+        let scanf_func = self.module.add_function("scanf", scanf_type, None);
+        let itos_type = i8_ptr_type.fn_type(&[i32_type.into()], false);
+        let itos_func = self.module.add_function("itos", itos_type, None);
+
+        self.symbol_table.insert("printf".to_string(), printf_func.as_global_value().as_pointer_value());
+        self.symbol_table.insert("scanf".to_string(), scanf_func.as_global_value().as_pointer_value());
+    }
+
     pub fn save_as(&self, path: &str) {
         let path = std::path::Path::new(path);
         match self.module.print_to_file(&path) {

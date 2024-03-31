@@ -50,7 +50,6 @@ fn main() {
     let checked_expressions = compiler.analyse(expressions);
 
     show_ByteCode(&checked_expressions);
-
     // show_static_scope(&static_analyzer);
 
     if !compiler.diagnostics.is_empty() {
@@ -63,6 +62,7 @@ fn main() {
         let module = context.create_module(FILE_NAME);
         let builder = context.create_builder();
         let ir_builder = IRBuilder::new(&context, module, builder);
+        ir_builder.import_lib_func();
 
         ir_builder.build_irs(checked_expressions);
 
