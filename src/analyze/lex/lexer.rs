@@ -34,7 +34,7 @@ use TokenType::{
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
-use crate::analyze::lex::TokenType::{AmpersandToken, ArrowToken, ConstKeyword};
+use crate::analyze::lex::TokenType::{AmpersandToken, ArrowToken, ConstKeyword, EndLineToken};
 
 pub struct Lexer {
     chars: Vec<char>,
@@ -423,7 +423,11 @@ impl Lexer {
     fn lex_white_spase(&self) -> Token {
         let text = self.lex_while(|c| c.is_whitespace());
         Token::new(
-            WhitespaceToken,
+            if text.contains('\n') {
+                EndLineToken
+            } else {
+                WhitespaceToken
+            },
             text,
             self.line_number(),
             self.column_number(),

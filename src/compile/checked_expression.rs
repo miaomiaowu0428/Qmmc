@@ -40,7 +40,7 @@ pub enum CheckedExpression {
         init_expr: Box<CheckedExpression>,
     },
     Assignment {
-        identifier: Token,
+        aim_expr: Box<CheckedExpression>,
         expression: Box<CheckedExpression>,
     },
     Conditional {
@@ -90,6 +90,7 @@ pub enum CheckedExpression {
     FunType {
         _type: FunctionType,
     },
+    EmptyExpr
 }
 
 impl CheckedExpression {

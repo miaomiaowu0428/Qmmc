@@ -839,20 +839,21 @@ impl<'ctx> IRBuilder<'ctx> {
                 self.new_zst_value()
             }
             CheckedExpression::Assignment {
-                identifier,
+                aim_expr,
                 expression,
             } => {
-                let var = self
-                    .symbol_table
-                    .get(&identifier.text)
-                    .expect(&format!("{} not found", identifier.text.red()));
-                let value = self.build_basic_value(*expression).unwrap();
-                self.builder
-                    .build_store(
-                        PointerValue::try_from(var).unwrap(),
-                        value.as_basic_value_enum(),
-                    )
-                    .expect("build store failed");
+                // let var = self
+                //     .symbol_table
+                //     .get(&identifier.text)
+                //     .expect(&format!("{} not found", identifier.text.red()));
+                // let value = self.build_basic_value(*expression).unwrap();
+                // self.builder
+                //     .build_store(
+                //         PointerValue::try_from(var).unwrap(),
+                //         value.as_basic_value_enum(),
+                //     )
+                //     .expect("build store failed");
+                self.build_assignment(*aim_expr, *expression);
                 self.new_zst_value()
             }
             _ => todo!(
@@ -861,6 +862,10 @@ impl<'ctx> IRBuilder<'ctx> {
                 expression
             ),
         }
+    }
+
+    fn build_assignment(&self,aim_expr: CheckedExpression,value_expr: CheckedExpression){
+        todo!("{}", "build assignment not implemented".red());
     }
 
     fn build_var_declare(

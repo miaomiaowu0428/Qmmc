@@ -36,6 +36,8 @@ fn main() {
     let lexer = Lexer::new(&contents);
     let tokens = lexer.lex();
 
+    // println!("Tokens: {:#?}", tokens);
+
     let syntax_tree = Parser::new(tokens);
     let expressions = syntax_tree.parse();
     if !syntax_tree.diagnostics.is_empty() {
@@ -44,7 +46,7 @@ fn main() {
         println!("==============================");
     }
 
-    // show_input(&expressions);
+    show_input(&expressions);
 
     let compiler = Compiler::new();
     let checked_expressions = compiler.analyse(expressions);

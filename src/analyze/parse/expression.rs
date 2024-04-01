@@ -13,7 +13,7 @@ use Expression::{BinaryExpression, Type};
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::parse::block::Block;
-use crate::analyze::parse::Expression::ConditionalBranchExpression;
+use crate::analyze::parse::Expression::{ConditionalBranchExpression, EmptyExpression};
 use crate::analyze::parse::Expression::WhileExpression;
 use crate::analyze::parse::Expression::{
     BreakExpression, ElseExpression, ElseIfExpression, FunctionDeclarationExpression,
@@ -61,7 +61,7 @@ pub enum Expression {
         assigment_expr: Option<Box<Expression>>,
     },
     AssignmentExpression {
-        identifier_token: Token,
+        aim_expr: Box<Expression>,
         equals_token: Token,
         expression: Box<Expression>,
     },
@@ -130,6 +130,7 @@ pub enum Expression {
         arrow: Token,
         return_type: Box<Expression>,
     },
+    EmptyExpression,
 }
 
 impl Expression {
@@ -200,11 +201,11 @@ impl Expression {
                 }
             }
             AssignmentExpression {
-                identifier_token,
+                aim_expr: aim,
                 equals_token,
                 expression,
             } => {
-                res.push(identifier_token.clone());
+                res.append(&mut aim.to_token_vec());
                 res.push(equals_token.clone());
                 res.append(&mut expression.to_token_vec());
             }
@@ -331,6 +332,7 @@ impl Expression {
                 res.push(arrow.clone());
                 res.append(&mut return_type.to_token_vec());
             }
+            EmptyExpression => {}
         }
         res
     }
@@ -433,11 +435,11 @@ impl Expression {
                 }
             }
             AssignmentExpression {
-                identifier_token,
+                aim_expr: aim,
                 equals_token,
                 expression,
             } => {
-                write!(f, "{}{} {} ", indent_str, identifier_token, equals_token)?;
+                write!(f, "{}{} {} ", indent_str, aim, equals_token)?;
                 expression.format_inline(f, indent)
             }
             ConditionalBranchExpression {
@@ -576,6 +578,9 @@ impl Expression {
                 write!(f, " {} ", arrow)?;
                 return_type.format_inline(f, indent)
             }
+            EmptyExpression => {
+                Ok(())
+            }
         } //end match
     }
 
@@ -648,11 +653,11 @@ impl Expression {
                 }
             }
             AssignmentExpression {
-                identifier_token,
+                aim_expr: aim,
                 equals_token,
                 expression,
             } => {
-                write!(f, "{}{} {} ", indent_str, identifier_token, equals_token)?;
+                write!(f, "{}{} {} ", indent_str, aim, equals_token)?;
                 expression.format_inline(f, indent)
             }
             ConditionalBranchExpression {
@@ -785,6 +790,9 @@ impl Expression {
                 write!(f, "{}", rp)?;
                 write!(f, " {} ", arrow)?;
                 return_type.format_inline(f, indent)
+            }
+            EmptyExpression => {
+                Ok(())
             }
         }
     }

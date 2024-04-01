@@ -3,11 +3,11 @@
 use colored::Colorize;
 use std::cell::RefCell;
 
-use Expression::LiteralExpression;
+use Expression::{EmptyExpression, LiteralExpression};
 use Expression::VarDeclarationExpression;
 use Expression::{AssignmentExpression, Type};
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
-use TokenType::IntegerToken;
+use TokenType::{EndLineToken, IntegerToken};
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
 use TokenType::RightBraceToken;
@@ -64,10 +64,6 @@ impl Parser {
     fn parse_expression(&self) -> Expression {
         let expr = match self.current().token_type {
             ValKeyword | VarKeyword => self.parse_declaration_expression(),
-            IdentifierToken if self.peek(1).token_type == EqualsToken => {
-                self.parse_assignment_expression()
-            }
-            // IdentifierToken if self.peek(1).token_type == LeftParenthesisToken => self.parse_function_call(),
             IfKeyword => self.parse_conditional_branch_expression(),
             WhileKeyword => self.parse_while_expression(),
             LoopKeyword => self.parse_loop_expression(),
@@ -81,6 +77,13 @@ impl Parser {
             ReturnKeyword => self.parse_return_expression(),
             _ => self.parse_operator_expression(0),
         };
+
+        let expr = if self.current().token_type == EqualsToken {
+            self.parse_assignment_expression(expr)
+        } else {
+            expr
+        };
+
         match self.current().token_type {
             TokenType::SemicolonToken => Statement {
                 expression: Box::new(expr),
@@ -113,7 +116,7 @@ impl Parser {
             (arrow_token, Box::from(self.parse_type_description()))
         } else {
             (
-                Token::new(EndOfFileToken, "".to_string(), 0, 0),
+                Token::new(ArrowToken, "->".to_string(), self.current().line_num, self.current().column_num),
                 Box::from(Type { tokens: Vec::new() }),
             )
         };
@@ -147,7 +150,7 @@ impl Parser {
             } else {
                 self.diagnostics.report(format!(
                     "you cannot use {} in type description",
-                    format!("{}",self.current()).red()
+                    format!("{}", self.current()).red()
                 ));
                 self.move_next();
             }
@@ -241,7 +244,7 @@ impl Parser {
         let lb = self.move_next();
         let block = Block::new();
         while self.current().token_type != RightBraceToken
-            && self.current().token_type != TokenType::EndOfFileToken
+            && self.current().token_type != EndOfFileToken
         {
             block.expressions.borrow_mut().push(self.parse_expression());
         }
@@ -326,38 +329,12 @@ impl Parser {
         }
     }
 
-    fn parse_assignment_expression(&self) -> Expression {
-        let identifier_token = self.move_next();
-        let equals_token = self.match_token(|t| t.token_type == EqualsToken, vec![EqualsToken]);
-        let expression = self.parse_expression();
+    fn parse_assignment_expression(&self,expr: Expression) -> Expression {
         AssignmentExpression {
-            identifier_token,
-            equals_token,
-            expression: Box::new(expression),
+            aim_expr: Box::new(expr),
+            equals_token: self.match_token(|t| t.token_type == EqualsToken, vec![EqualsToken]),
+            expression: Box::new(self.parse_expression())
         }
-    }
-
-    fn parse_operator_expression(&self, parent_priority: i32) -> Expression {
-        let mut left;
-
-        left = self.parse_unary_expression(parent_priority);
-
-        loop {
-            let binary_priority = self.current().token_type.get_binary_priority();
-            if binary_priority == 0 || binary_priority <= parent_priority {
-                break;
-            }
-
-            let op = self.current();
-            self.move_next();
-            let right = self.parse_operator_expression(parent_priority);
-            left = BinaryExpression {
-                left: Box::new(left),
-                operator_token: op,
-                right: Box::new(right),
-            }
-        }
-        left
     }
 
     fn parse_declaration_expression(&self) -> Expression {
@@ -382,6 +359,29 @@ impl Parser {
                 assigment_expr: None,
             }
         }
+    }
+
+    fn parse_operator_expression(&self, parent_priority: i32) -> Expression {
+        let mut left;
+
+        left = self.parse_unary_expression(parent_priority);
+
+        loop {
+            let binary_priority = self.current().token_type.get_binary_priority();
+            if binary_priority == 0 || binary_priority <= parent_priority {
+                break;
+            }
+
+            let op = self.current();
+            self.move_next();
+            let right = self.parse_operator_expression(parent_priority);
+            left = BinaryExpression {
+                left: Box::new(left),
+                operator_token: op,
+                right: Box::new(right),
+            }
+        }
+        left
     }
 
     fn parse_unary_expression(&self, parent_priority: i32) -> Expression {
@@ -427,6 +427,10 @@ impl Parser {
                     expression: Box::new(expr),
                     right_p,
                 }
+            }
+            EndLineToken => {
+                self.move_next();
+                EmptyExpression
             }
             _ => {
                 self.diagnostics.report_unexpected_token(
