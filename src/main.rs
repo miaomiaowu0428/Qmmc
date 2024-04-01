@@ -25,7 +25,7 @@ mod runtime;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "test_pointer";
+static FILE_NAME: &str = "test_swap";
 
 fn main() {
     let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))
@@ -44,7 +44,7 @@ fn main() {
         println!("==============================");
     }
 
-    show_input(&expressions);
+    // show_input(&expressions);
 
     let compiler = Compiler::new();
     let checked_expressions = compiler.analyse(expressions);

@@ -1,0 +1,15 @@
+fun swap(a: I32*, b: I32*) {
+    val temp = *a
+    *a = *b
+    *b = temp
+}
+
+fun main() -> I32{
+    val a = 10
+    val b = 20
+
+
+    swap(&a, &b)
+
+    a
+}

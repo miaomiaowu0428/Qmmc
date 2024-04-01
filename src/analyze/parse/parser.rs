@@ -3,7 +3,7 @@
 use colored::Colorize;
 use std::cell::RefCell;
 
-use Expression::AssignmentExpression;
+use Expression::{AssignmentExpression, Type};
 use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
@@ -27,7 +27,7 @@ use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
 use crate::analyze::lex::token::TokenType::FloatPointToken;
-use crate::analyze::lex::TokenType::EqualsToken;
+use crate::analyze::lex::TokenType::{EndOfFileToken, EqualsToken};
 use crate::analyze::lex::TokenType::LoopKeyword;
 use crate::analyze::parse::block::Block;
 use crate::analyze::parse::expression::Expression::BinaryExpression;
@@ -108,8 +108,12 @@ impl Parser {
         );
 
         // return type
-        let arrow_token = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
-        let res_type_description = Box::from(self.parse_type_description());
+        let (arrow_token, res_type_description) = if self.current().token_type == ArrowToken {
+            let arrow_token = self.move_next();
+            (arrow_token, Box::from(self.parse_type_description()))
+        } else {
+            (Token::new(EndOfFileToken, "".to_string(), 0, 0), Box::from(Type { tokens: Vec::new() }))
+        };
 
         // function body
         let body = self.parse_block();
@@ -125,29 +129,17 @@ impl Parser {
         }
     }
     fn parse_type_description(&self) -> Expression {
-        if self.current().token_type == IdentifierToken {
-            IdentifierExpression {
-                identifier_token: self.move_next(),
-            }
-        } else {
-            let lp = self.match_token(
-                |t| t.token_type == LeftParenthesisToken,
-                vec![LeftParenthesisToken],
-            );
-            let parameter_types = self.parse_function_parameter_types();
-            let rp = self.match_token(
-                |t| t.token_type == RightParenthesisToken,
-                vec![RightParenthesisToken],
-            );
-            let arrow = self.match_token(|t| t.token_type == ArrowToken, vec![ArrowToken]);
-            let res_type = self.parse_type_description();
-            FunctionTypeExpression {
-                lp,
-                parameter_types,
-                rp,
-                arrow,
-                return_type: Box::new(res_type),
-            }
+        let mut tokens = Vec::new();
+        while self.current().token_type != LeftBraceToken &&
+            self.current().token_type != RightParenthesisToken &&
+            self.current().token_type != CommaToken &&
+            self.current().token_type != EqualsToken &&
+            self.current().token_type != EndOfFileToken
+        {
+            tokens.push(self.move_next());
+        }
+        Type {
+            tokens
         }
     }
 

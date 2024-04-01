@@ -39,6 +39,12 @@ impl RawType {
             _ => false,
         }
     }
+
+    pub fn ptr_type_of(inner_type:RawType) -> RawType {
+        RawType::Pointer {
+            inner_type: Box::new(inner_type)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -452,15 +452,47 @@ impl Compiler {
         }
     }
 
-    fn check_type_name(&self, expr: Expression) -> Result<RawType, ()> {
+    fn check_type(&self, expr: Expression) -> Result<RawType, ()> {
         match expr {
-            Expression::IdentifierExpression { identifier_token: name } => {
-                Ok(self.type_of(&CheckedExpression::TypeName { name }))
-            }
-            _ => {
-                self.diagnostics.report(format!("{} is not a type name", expr));
-                Err(())
-            }
+            Expression::Type { tokens } => {
+                if tokens.len() == 0 {
+                    Ok(Unit)
+                } else {
+                    let base_type = match tokens[0].text.as_str() {
+                        "I32" => I32,
+                        "F32" => F32,
+                        "Bool" => Bool,
+                        "Char" => Char,
+                        "Byte" => Byte,
+                        "Unit" => Unit,
+                        _ => {
+                            self.diagnostics.report(format!(
+                                "{} is not a type name",
+                                tokens[0].text
+                            ));
+                            return Err(());
+                        }
+                    };
+                    let mut current_type = base_type;
+                    for i in 1..tokens.len() {
+                        let token = &tokens[i];
+                        match token.text.as_str() {
+                            "*" => {
+                                current_type = RawType::ptr_type_of(current_type);
+                            }
+                            _ => {
+                                self.diagnostics.report(format!(
+                                    "{} is not a type name",
+                                    token.text
+                                ));
+                                return Err(());
+                            }
+                        }
+                    }
+                    Ok(current_type)
+                }
+            },
+            _ => Err(()),
         }
     }
 
@@ -476,7 +508,7 @@ impl Compiler {
             .map(|p| self.check_expression(p.clone().type_description))
             .map(|p| self.type_of(&p))
             .collect();
-        let checked_res_type = self.check_type_name(*res_type_description.clone());
+        let checked_res_type = self.check_type(*res_type_description.clone());
         let checked_res_type = match checked_res_type {
             Ok(t) => t,
             Err(_) => {
