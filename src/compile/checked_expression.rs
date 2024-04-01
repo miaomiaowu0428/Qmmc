@@ -135,7 +135,10 @@ impl From<Token> for LiteralExpr {
             CharToken => LiteralExpr::Byte(value.text.chars().next().unwrap()),
             LiteralStringToken => LiteralExpr::Str(value.text),
             _ => {
-                println!("Invalid literal token type: {}", format!("{:?}", value.token_type).red());
+                println!(
+                    "Invalid literal token type: {}",
+                    format!("{:?}", value.token_type).red()
+                );
                 LiteralExpr::None
             }
         }

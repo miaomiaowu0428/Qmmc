@@ -40,9 +40,9 @@ impl RawType {
         }
     }
 
-    pub fn ptr_type_of(inner_type:RawType) -> RawType {
+    pub fn ptr_type_of(inner_type: RawType) -> RawType {
         RawType::Pointer {
-            inner_type: Box::new(inner_type)
+            inner_type: Box::new(inner_type),
         }
     }
 }

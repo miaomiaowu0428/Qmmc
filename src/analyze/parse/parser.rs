@@ -3,9 +3,9 @@
 use colored::Colorize;
 use std::cell::RefCell;
 
-use Expression::{AssignmentExpression, Type};
 use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
+use Expression::{AssignmentExpression, Type};
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
 use TokenType::IntegerToken;
 use TokenType::LeftBraceToken;
@@ -27,8 +27,8 @@ use crate::analyze::diagnostic::DiagnosticBag;
 use crate::analyze::lex::token::Token;
 use crate::analyze::lex::token::TokenType;
 use crate::analyze::lex::token::TokenType::FloatPointToken;
-use crate::analyze::lex::TokenType::{EndOfFileToken, EqualsToken};
 use crate::analyze::lex::TokenType::LoopKeyword;
+use crate::analyze::lex::TokenType::{AmpersandToken, EndOfFileToken, EqualsToken, StarToken};
 use crate::analyze::parse::block::Block;
 use crate::analyze::parse::expression::Expression::BinaryExpression;
 use crate::analyze::parse::expression::Expression::ParenthesizedExpression;
@@ -112,7 +112,10 @@ impl Parser {
             let arrow_token = self.move_next();
             (arrow_token, Box::from(self.parse_type_description()))
         } else {
-            (Token::new(EndOfFileToken, "".to_string(), 0, 0), Box::from(Type { tokens: Vec::new() }))
+            (
+                Token::new(EndOfFileToken, "".to_string(), 0, 0),
+                Box::from(Type { tokens: Vec::new() }),
+            )
         };
 
         // function body
@@ -130,17 +133,26 @@ impl Parser {
     }
     fn parse_type_description(&self) -> Expression {
         let mut tokens = Vec::new();
-        while self.current().token_type != LeftBraceToken &&
-            self.current().token_type != RightParenthesisToken &&
-            self.current().token_type != CommaToken &&
-            self.current().token_type != EqualsToken &&
-            self.current().token_type != EndOfFileToken
+        while self.current().token_type != LeftBraceToken
+            && self.current().token_type != RightParenthesisToken
+            && self.current().token_type != CommaToken
+            && self.current().token_type != EqualsToken
+            && self.current().token_type != EndOfFileToken
         {
-            tokens.push(self.move_next());
+            if self.current().token_type == IdentifierToken
+                || self.current().token_type == StarToken
+                || self.current().token_type == AmpersandToken
+            {
+                tokens.push(self.move_next());
+            } else {
+                self.diagnostics.report(format!(
+                    "you cannot use {} in type description",
+                    format!("{}",self.current()).red()
+                ));
+                self.move_next();
+            }
         }
-        Type {
-            tokens
-        }
+        Type { tokens }
     }
 
     fn parse_return_expression(&self) -> Expression {

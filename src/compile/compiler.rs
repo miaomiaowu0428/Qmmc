@@ -128,15 +128,14 @@ impl Compiler {
                 return_type,
                 ..
             } => self.check_function_type_expression(parameter_types, return_type),
-            Expression::Type { tokens } => {
-                match self.check_type(tokens.clone()) {
-                    Ok(t) => CheckedExpression::Type { _type: t },
-                    Err(_) => {
-                        self.diagnostics.report(format!("{:?} is not a type name", tokens));
-                        CheckedExpression::Type { _type: Unit }
-                    },
+            Expression::Type { tokens } => match self.check_type(tokens.clone()) {
+                Ok(t) => CheckedExpression::Type { _type: t },
+                Err(_) => {
+                    self.diagnostics
+                        .report(format!("{:?} is not a type name", tokens));
+                    CheckedExpression::Type { _type: Unit }
                 }
-            }
+            },
             _ => {
                 todo!("{}", format!("{:#?} not implemented yet", expression))
             }
@@ -436,7 +435,8 @@ impl Compiler {
         let operand_type = self.type_of(&checked_operand);
 
         if operator_token.token_type == TokenType::AmpersandToken {
-            if let CheckedExpression::VariableName { name } = &checked_operand {} else {
+            if let CheckedExpression::VariableName { name } = &checked_operand {
+            } else {
                 self.diagnostics.report(format!(
                     "can only take address of variable, but {:?} given",
                     checked_operand
@@ -473,10 +473,8 @@ impl Compiler {
                 "Byte" => Byte,
                 "Unit" => Unit,
                 _ => {
-                    self.diagnostics.report(format!(
-                        "{} is not a type name",
-                        tokens[0].text
-                    ));
+                    self.diagnostics
+                        .report(format!("{} is not a type name", tokens[0].text));
                     return Err(());
                 }
             };
@@ -488,10 +486,8 @@ impl Compiler {
                         current_type = RawType::ptr_type_of(current_type);
                     }
                     _ => {
-                        self.diagnostics.report(format!(
-                            "{} is not a type name",
-                            token.text
-                        ));
+                        self.diagnostics
+                            .report(format!("{} is not a type name", token.text));
                         return Err(());
                     }
                 }
@@ -516,7 +512,8 @@ impl Compiler {
         let checked_res_type = match checked_res_type {
             Ok(t) => t,
             Err(_) => {
-                self.diagnostics.report(format!("{} is not a type name", res_type_description));
+                self.diagnostics
+                    .report(format!("{} is not a type name", res_type_description));
                 Unit
             }
         };
@@ -546,11 +543,8 @@ impl Compiler {
                 VariableSymbol::new_mut(parameter_types[i].clone()),
             );
         }
-        let checked_body = child_scope.check_function_body(
-            &*identifier.text,
-            body,
-            checked_res_type.clone(),
-        );
+        let checked_body =
+            child_scope.check_function_body(&*identifier.text, body, checked_res_type.clone());
         self.diagnostics.append(child_scope.diagnostics.clone());
 
         let res_type = checked_res_type.clone();

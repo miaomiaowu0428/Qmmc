@@ -343,10 +343,16 @@ impl Display for Expression {
 }
 
 impl Expression {
-    pub fn to_type_token_vec(&self)->Vec<Token>{
+    pub fn to_type_token_vec(&self) -> Vec<Token> {
         match self {
             Type { tokens } => tokens.clone(),
-            _ => panic!("{}" ,format!("Expression::to_token_vec() called on non-Type variant: {:?}", self))
+            _ => panic!(
+                "{}",
+                format!(
+                    "Expression::to_token_vec() called on non-Type variant: {:?}",
+                    self
+                )
+            ),
         }
     }
 
