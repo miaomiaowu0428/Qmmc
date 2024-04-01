@@ -134,7 +134,10 @@ impl From<Token> for LiteralExpr {
             FalseKeyword => LiteralExpr::Bool(false),
             CharToken => LiteralExpr::Byte(value.text.chars().next().unwrap()),
             LiteralStringToken => LiteralExpr::Str(value.text),
-            _ => panic!("Invalid literal token type: {}", format!("{:?}", value.token_type).red()),
+            _ => {
+                println!("Invalid literal token type: {}", format!("{:?}", value.token_type).red());
+                LiteralExpr::None
+            }
         }
     }
 }

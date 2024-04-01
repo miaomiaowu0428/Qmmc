@@ -354,7 +354,7 @@ impl Compiler {
             },
             None => {
                 self.diagnostics.report(format!(
-                    "operator {} is not supported for types {} and {}",
+                    "operator {} is not supported for {} and {}",
                     operator_token.text.red(),
                     format!("{:?}", left_type).red(),
                     format!("{:?}", right_type).red()
