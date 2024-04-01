@@ -1,3 +1,4 @@
+use colored::Colorize;
 use TokenType::{
     CharToken, FalseKeyword, FloatPointToken, IntegerToken, LiteralStringToken, TrueKeyword,
 };
@@ -30,8 +31,8 @@ pub enum CheckedExpression {
     VariableName {
         name: Token,
     },
-    TypeName {
-        name: Token,
+    Type {
+        _type: RawType,
     },
     VarDeclare {
         name: Token,
@@ -133,7 +134,7 @@ impl From<Token> for LiteralExpr {
             FalseKeyword => LiteralExpr::Bool(false),
             CharToken => LiteralExpr::Byte(value.text.chars().next().unwrap()),
             LiteralStringToken => LiteralExpr::Str(value.text),
-            _ => panic!("Invalid literal token type"),
+            _ => panic!("Invalid literal token type: {}", format!("{:?}", value.token_type).red()),
         }
     }
 }

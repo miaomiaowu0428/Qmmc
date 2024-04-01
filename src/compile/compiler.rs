@@ -128,6 +128,15 @@ impl Compiler {
                 return_type,
                 ..
             } => self.check_function_type_expression(parameter_types, return_type),
+            Expression::Type { tokens } => {
+                match self.check_type(tokens.clone()) {
+                    Ok(t) => CheckedExpression::Type { _type: t },
+                    Err(_) => {
+                        self.diagnostics.report(format!("{:?} is not a type name", tokens));
+                        CheckedExpression::Type { _type: Unit }
+                    },
+                }
+            }
             _ => {
                 todo!("{}", format!("{:#?} not implemented yet", expression))
             }
@@ -452,47 +461,42 @@ impl Compiler {
         }
     }
 
-    fn check_type(&self, expr: Expression) -> Result<RawType, ()> {
-        match expr {
-            Expression::Type { tokens } => {
-                if tokens.len() == 0 {
-                    Ok(Unit)
-                } else {
-                    let base_type = match tokens[0].text.as_str() {
-                        "I32" => I32,
-                        "F32" => F32,
-                        "Bool" => Bool,
-                        "Char" => Char,
-                        "Byte" => Byte,
-                        "Unit" => Unit,
-                        _ => {
-                            self.diagnostics.report(format!(
-                                "{} is not a type name",
-                                tokens[0].text
-                            ));
-                            return Err(());
-                        }
-                    };
-                    let mut current_type = base_type;
-                    for i in 1..tokens.len() {
-                        let token = &tokens[i];
-                        match token.text.as_str() {
-                            "*" => {
-                                current_type = RawType::ptr_type_of(current_type);
-                            }
-                            _ => {
-                                self.diagnostics.report(format!(
-                                    "{} is not a type name",
-                                    token.text
-                                ));
-                                return Err(());
-                            }
-                        }
-                    }
-                    Ok(current_type)
+    fn check_type(&self, tokens: Vec<Token>) -> Result<RawType, ()> {
+        if tokens.len() == 0 {
+            Ok(Unit)
+        } else {
+            let base_type = match tokens[0].text.as_str() {
+                "I32" => I32,
+                "F32" => F32,
+                "Bool" => Bool,
+                "Char" => Char,
+                "Byte" => Byte,
+                "Unit" => Unit,
+                _ => {
+                    self.diagnostics.report(format!(
+                        "{} is not a type name",
+                        tokens[0].text
+                    ));
+                    return Err(());
                 }
-            },
-            _ => Err(()),
+            };
+            let mut current_type = base_type;
+            for i in 1..tokens.len() {
+                let token = &tokens[i];
+                match token.text.as_str() {
+                    "*" => {
+                        current_type = RawType::ptr_type_of(current_type);
+                    }
+                    _ => {
+                        self.diagnostics.report(format!(
+                            "{} is not a type name",
+                            token.text
+                        ));
+                        return Err(());
+                    }
+                }
+            }
+            Ok(current_type)
         }
     }
 
@@ -508,7 +512,7 @@ impl Compiler {
             .map(|p| self.check_expression(p.clone().type_description))
             .map(|p| self.type_of(&p))
             .collect();
-        let checked_res_type = self.check_type(*res_type_description.clone());
+        let checked_res_type = self.check_type(res_type_description.to_type_token_vec());
         let checked_res_type = match checked_res_type {
             Ok(t) => t,
             Err(_) => {
@@ -720,22 +724,6 @@ impl Compiler {
                     }
                 }
             }
-            CheckedExpression::TypeName { name } => match name.text.as_str() {
-                "I32" => I32,
-                "F32" => F32,
-                "Bool" => Bool,
-                "Char" => Char,
-                "Byte" => Byte,
-                "()" => Unit,
-                "Unit" => Unit,
-                _ => {
-                    self.diagnostics.report(format!(
-                        "User type {} which you are using is not supported",
-                        name.text
-                    ));
-                    Unit
-                }
-            },
             CheckedExpression::Assignment { .. } => Unit,
             CheckedExpression::Conditional { then, .. } => self.type_of(then),
             CheckedExpression::If { body, .. } => self.type_of(body),
@@ -769,6 +757,7 @@ impl Compiler {
                 };
                 Unit
             }
+            CheckedExpression::Type { _type } => _type.clone(),
         }
     }
 
