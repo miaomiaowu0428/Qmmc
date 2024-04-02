@@ -90,7 +90,7 @@ pub enum CheckedExpression {
     FunType {
         _type: FunctionType,
     },
-    EmptyExpr
+    // EmptyExpr
 }
 
 impl CheckedExpression {

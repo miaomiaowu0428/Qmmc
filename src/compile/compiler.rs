@@ -17,7 +17,7 @@ use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
 use crate::compile::RawType::{Bool, Byte, Char, StringLiteral, F32, I32};
 use crate::compile::{FunctionDeclare, RawType};
-use crate::compile::CheckedExpression::EmptyExpr;
+// use crate::compile::CheckedExpression::EmptyExpr;
 
 lazy_static! {
     static ref BUILT_IN_FUNCTION_NAME: Vec<String> =
@@ -78,7 +78,7 @@ impl Compiler {
                 declaration_token,
                 identifier_token,
                 equals_token,
-                assigment_expr,
+                init_expr: assigment_expr,
             } => self.check_var_declaration_expression(
                 declaration_token,
                 identifier_token,
@@ -137,7 +137,7 @@ impl Compiler {
                     CheckedExpression::Type { _type: Unit }
                 }
             },
-            Expression::EmptyExpression => EmptyExpr,
+            // Expression::EmptyExpression => EmptyExpr,
             _ => {
                 todo!("{}", format!("{:#?} not implemented yet", expression))
             }
@@ -284,7 +284,7 @@ impl Compiler {
 
         match aim_expr {
             Expression::UnaryExpression { operator_token, operand } => {
-                if operator_token.token_type == TokenType::StarToken{
+                if operator_token.token_type == TokenType::StarToken {
                     let checked_aim_expr = self.check_expression(*operand.clone());
                     let checked_aim_type = self.type_of(&checked_aim_expr);
                     if checked_aim_type == r#value_type {
@@ -311,9 +311,8 @@ impl Compiler {
                         value: LiteralExpr::None,
                     }
                 }
-
             }
-            Expression::IdentifierExpression{ identifier_token } => { // 处理直接对变量赋值的情况
+            Expression::IdentifierExpression { identifier_token } => { // 处理直接对变量赋值的情况
                 let variable_name = &identifier_token.text;
                 let symbol = self.scope.get_global(variable_name);
                 match symbol {
