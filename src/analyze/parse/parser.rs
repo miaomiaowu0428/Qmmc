@@ -3,11 +3,10 @@
 use colored::Colorize;
 use std::cell::RefCell;
 
-use Expression::{ LiteralExpression};
+use Expression::LiteralExpression;
 use Expression::VarDeclarationExpression;
 use Expression::{AssignmentExpression, Type};
 use Expression::{BreakExpression, IdentifierExpression, LoopExpression};
-use TokenType::{EndLineToken, IntegerToken};
 use TokenType::LeftBraceToken;
 use TokenType::LeftParenthesisToken;
 use TokenType::RightBraceToken;
@@ -21,6 +20,7 @@ use TokenType::{
     ReturnKeyword,
 };
 use TokenType::{CharToken, IfKeyword};
+use TokenType::{EndLineToken, IntegerToken};
 use TokenType::{IdentifierToken, LiteralStringToken};
 
 use crate::analyze::diagnostic::DiagnosticBag;
@@ -126,7 +126,12 @@ impl Parser {
             (arrow_token, Box::from(self.parse_type_description()))
         } else {
             (
-                Token::new(ArrowToken, "->".to_string(), self.current().line_num, self.current().column_num),
+                Token::new(
+                    ArrowToken,
+                    "->".to_string(),
+                    self.current().line_num,
+                    self.current().column_num,
+                ),
                 Box::from(Type { tokens: Vec::new() }),
             )
         };
@@ -339,11 +344,11 @@ impl Parser {
         }
     }
 
-    fn parse_assignment_expression(&self,expr: Expression) -> Expression {
+    fn parse_assignment_expression(&self, expr: Expression) -> Expression {
         AssignmentExpression {
             aim_expr: Box::new(expr),
             equals_token: self.match_token(|t| t.token_type == EqualsToken, vec![EqualsToken]),
-            expression: Box::new(self.parse_expression())
+            expression: Box::new(self.parse_expression()),
         }
     }
 

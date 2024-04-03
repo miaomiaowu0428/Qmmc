@@ -13,7 +13,7 @@ use Expression::{BinaryExpression, Type};
 
 use crate::analyze::lex::token::Token;
 use crate::analyze::parse::block::Block;
-use crate::analyze::parse::Expression::{ConditionalBranchExpression, };
+use crate::analyze::parse::Expression::ConditionalBranchExpression;
 use crate::analyze::parse::Expression::WhileExpression;
 use crate::analyze::parse::Expression::{
     BreakExpression, ElseExpression, ElseIfExpression, FunctionDeclarationExpression,
@@ -331,8 +331,7 @@ impl Expression {
                 res.push(rp.clone());
                 res.push(arrow.clone());
                 res.append(&mut return_type.to_token_vec());
-            }
-            // EmptyExpression => {}
+            } // EmptyExpression => {}
         }
         res
     }
@@ -512,7 +511,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} {} ", indent_str, fun_token, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -522,7 +521,7 @@ impl Expression {
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
-                write!(f, ") ", )?;
+                write!(f, ") ",)?;
                 write!(f, "-> ")?;
                 write!(f, "{} ", type_description)?;
                 body.format_inline(f, indent)
@@ -540,7 +539,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} ", indent_str, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -577,10 +576,9 @@ impl Expression {
                 write!(f, "{}", rp)?;
                 write!(f, " {} ", arrow)?;
                 return_type.format_inline(f, indent)
-            }
-            // EmptyExpression => {
-            //     Ok(())
-            // }
+            } // EmptyExpression => {
+              //     Ok(())
+              // }
         } //end match
     }
 
@@ -725,7 +723,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{} {} ", fun_token, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -735,7 +733,7 @@ impl Expression {
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
-                write!(f, ") ", )?;
+                write!(f, ") ",)?;
                 write!(f, "-> ")?;
                 write!(f, "{} ", type_description)?;
                 body.format_inline(f, indent)
@@ -753,7 +751,7 @@ impl Expression {
                 ..
             } => {
                 write!(f, "{}{} ", indent_str, identifier_token)?;
-                write!(f, "(", )?;
+                write!(f, "(",)?;
                 write!(
                     f,
                     "{}",
@@ -790,10 +788,9 @@ impl Expression {
                 write!(f, "{}", rp)?;
                 write!(f, " {} ", arrow)?;
                 return_type.format_inline(f, indent)
-            }
-            // EmptyExpression => {
-            //     Ok(())
-            // }
+            } // EmptyExpression => {
+              //     Ok(())
+              // }
         }
     }
 }

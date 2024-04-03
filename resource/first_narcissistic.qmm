@@ -9,7 +9,7 @@ fun pow(n: I32, e: I32) -> I32 {
 }
 
 fun cube(n: I32) -> I32 {
-    - 0 +(pow(n, 1) + 0) * (pow(n, 2) - 0) + 0
+    pow(n,3)
 }
 
 fun get_digit_cube_sum(n: I32) -> I32 {
@@ -24,18 +24,7 @@ fun get_digit_cube_sum(n: I32) -> I32 {
 }
 
 fun is_narcissistic(n: I32) -> Bool {
-    if n == get_digit_cube_sum(n) {
-        var x = 1
-        while n != 0 {
-            if x == 100 {
-                break
-            }
-            x = x + 1
-        }
-        true
-    } else {
-        false
-    }
+    get_digit_cube_sum(n) == n
 }
 
 fun main() -> I32 {

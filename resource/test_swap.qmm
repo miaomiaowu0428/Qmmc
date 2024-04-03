@@ -4,9 +4,9 @@ fun swap(a: I32*, b: I32*) {
     *b = temp
 }
 
-fun main() -> I32{
-    val a = 10
-    val b = 20
+fun main() -> I32 {
+    val a = 50
+    val b = 100
 
 
     swap(&a, &b)

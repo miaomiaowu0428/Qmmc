@@ -25,7 +25,7 @@ mod runtime;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "first_narcissistic";
+static FILE_NAME: &str = "test_swap";
 
 fn main() {
     let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))
@@ -46,13 +46,12 @@ fn main() {
         println!("==============================");
     }
 
-    show_input(&expressions);
+    // show_input(&expressions);
 
     let compiler = Compiler::new();
     let checked_expressions = compiler.analyse(expressions);
 
-    show_ByteCode(&checked_expressions);
-    // show_static_scope(&static_analyzer);
+    // show_ByteCode(&checked_expressions);
 
     if !compiler.diagnostics.is_empty() {
         println!("Static Analysis Diagnostics: ");
@@ -63,7 +62,8 @@ fn main() {
         let module = context.create_module(FILE_NAME);
         let builder = context.create_builder();
         let ir_builder = IRBuilder::new(&context, module, builder);
-        ir_builder.import_lib_func();
+
+        // ir_builder.import_lib_func();
 
         ir_builder.build_irs(checked_expressions);
 

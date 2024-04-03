@@ -16,7 +16,7 @@ use crate::compile::r#type::FunctionType;
 use crate::compile::unary_operator::UnaryOperator;
 use crate::compile::variable_symbol::VariableSymbol;
 use crate::compile::RawType::{Bool, Byte, Char, StringLiteral, F32, I32};
-use crate::compile::{FunctionDeclare, RawType};
+use crate::compile::{FunctionDeclare, RawType, UnaryOperatorType};
 // use crate::compile::CheckedExpression::EmptyExpr;
 
 lazy_static! {
@@ -282,55 +282,39 @@ impl Compiler {
         let checked_value_expression = self.check_expression(*value_expr);
         let value_type = self.type_of(&checked_value_expression);
 
-        match aim_expr {
-            Expression::UnaryExpression { operator_token, operand } => {
-                if operator_token.token_type == TokenType::StarToken {
-                    let checked_aim_expr = self.check_expression(*operand.clone());
-                    let checked_aim_type = self.type_of(&checked_aim_expr);
-                    if checked_aim_type == r#value_type {
-                        CheckedExpression::Assignment {
-                            aim_expr: Box::new(checked_aim_expr),
-                            expression: Box::new(checked_value_expression),
-                        }
-                    } else {
-                        self.diagnostics.report(format!(
-                            "type mismatch in assignment. expected {}, but {} is given",
-                            format!("{:?}", checked_aim_type).green(),
-                            format!("{:?}", r#value_type).red()
-                        ));
-                        CheckedExpression::Literal {
-                            value: LiteralExpr::None,
-                        }
-                    }
-                } else {
-                    self.diagnostics.report(format!(
-                        "cannot assign to {}",
-                        aim_expr
-                    ));
-                    CheckedExpression::Literal {
-                        value: LiteralExpr::None,
-                    }
+        let aim_expr = self.check_expression(aim_expr.clone()); // 这里是不是就能检查aim_expr内部的合法性了
+
+        match aim_expr.clone() {
+            CheckedExpression::Unary { op, operand }
+                if op.operator_type == UnaryOperatorType::Dereference =>
+            {
+                CheckedExpression::Assignment {
+                    aim_expr: Box::new(aim_expr),
+                    expression: Box::new(checked_value_expression),
                 }
             }
-            Expression::IdentifierExpression { identifier_token } => { // 处理直接对变量赋值的情况
-                let variable_name = &identifier_token.text;
+            CheckedExpression::VariableName { name } => {
+                // 处理直接对变量赋值的情况
+                let variable_name = &name.text;
                 let symbol = self.scope.get_global(variable_name);
                 match symbol {
-                    Some(s) if s.r#type == value_type && s.mutable => CheckedExpression::Assignment {
-                        aim_expr: Box::new(CheckedExpression::VariableName {
-                            name: identifier_token.clone(),
-                        }),
-                        expression: Box::new(checked_value_expression),
-                    },
-                    Some(s) if s.r#type == value_type && s.mutable == false && s.initialized == false => {
+                    Some(s) if s.r#type == value_type && s.mutable => {
+                        CheckedExpression::Assignment {
+                            aim_expr: Box::new(aim_expr),
+                            expression: Box::new(checked_value_expression),
+                        }
+                    }
+                    Some(s)
+                        if s.r#type == value_type
+                            && s.mutable == false
+                            && s.initialized == false =>
+                    {
                         self.scope.try_set_global(
                             variable_name,
                             VariableSymbol::init_as_immut(value_type.clone()),
                         );
                         CheckedExpression::Assignment {
-                            aim_expr: Box::new(CheckedExpression::VariableName {
-                                name: identifier_token.clone(),
-                            }),
+                            aim_expr: Box::new(aim_expr),
                             expression: Box::new(checked_value_expression),
                         }
                     }
@@ -363,10 +347,8 @@ impl Compiler {
                 }
             }
             _ => {
-                self.diagnostics.report(format!(
-                    "cannot assign to {}",
-                    aim_expr
-                ));
+                self.diagnostics
+                    .report(format!("cannot assign to expression {:?}", aim_expr));
                 CheckedExpression::Literal {
                     value: LiteralExpr::None,
                 }
@@ -485,7 +467,8 @@ impl Compiler {
         let operand_type = self.type_of(&checked_operand);
 
         if operator_token.token_type == TokenType::AmpersandToken {
-            if let CheckedExpression::VariableName { name } = &checked_operand {} else {
+            if let CheckedExpression::VariableName { name } = &checked_operand {
+            } else {
                 self.diagnostics.report(format!(
                     "can only take address of variable, but {:?} given",
                     checked_operand

@@ -40,6 +40,13 @@ impl RawType {
         }
     }
 
+    pub fn inner_type(&self) -> Option<RawType> {
+        match self {
+            RawType::Pointer { inner_type } => Some(*inner_type.clone()),
+            _ => None,
+        }
+    }
+
     pub fn ptr_type_of(inner_type: RawType) -> RawType {
         RawType::Pointer {
             inner_type: Box::new(inner_type),
