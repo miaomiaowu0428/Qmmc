@@ -61,7 +61,7 @@ impl Lexer {
         *self.column_number.borrow()
     }
 
-    pub(crate) fn lex(&self) -> Vec<Token> {
+    pub fn lex(&self) -> Vec<Token> {
         let mut tokens = Vec::new();
         while let Some(c) = self.current() {
             let token = if c.is_ascii_digit() {

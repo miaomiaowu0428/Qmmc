@@ -42,7 +42,7 @@ use crate::analyze::parse::Expression::{
 pub struct Parser {
     tokens: Vec<Token>,
     pos: RefCell<usize>,
-    pub(crate) diagnostics: DiagnosticBag,
+    pub diagnostics: DiagnosticBag,
 }
 
 impl Parser {

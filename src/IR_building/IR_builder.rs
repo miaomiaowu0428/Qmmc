@@ -32,7 +32,7 @@ pub struct IRBuilder<'ctx> {
     loop_stack: LoopStack<'ctx>,
     zst: BasicTypeEnum<'ctx>,
     zst_value: BasicValueEnum<'ctx>,
-    pub(crate) diagnostics: DiagnosticBag,
+    pub diagnostics: DiagnosticBag,
 }
 
 impl<'ctx> IRBuilder<'ctx> {
