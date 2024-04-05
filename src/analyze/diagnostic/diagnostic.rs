@@ -7,7 +7,6 @@ use TokenType::{FloatPointToken, IntegerToken};
 
 use crate::analyze::lex::token::{Token, TokenType};
 use crate::analyze::parse::Expression;
-use crate::runtime::RuntimeType;
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticBag {
@@ -78,23 +77,6 @@ impl DiagnosticBag {
         let message = format!("Bad token '<{}>'", token.to_string().red());
         self.report(message);
     }
-
-    pub(crate) fn report_argument_type_mismatch(
-        &self,
-        function_name: &str,
-        parameter_name: &str,
-        need: RuntimeType,
-        found: RuntimeType,
-    ) {
-        let message = format!(
-            "parameter {} in function:{} need type {}, but {} is given",
-            parameter_name.red(),
-            function_name.blue(),
-            need.to_string().green(),
-            found.to_string().red()
-        );
-        self.report(message);
-    }
     pub(crate) fn report_argument_count_mismatch(
         &self,
         function_name: &String,
@@ -152,30 +134,6 @@ impl DiagnosticBag {
         };
         let msg = format!("cannot parse {} into {}", token.text.red(), aim_type);
         self.report(msg)
-    }
-
-    pub(crate) fn report_invalid_binary_op(
-        &self,
-        left_type: RuntimeType,
-        op_token: Token,
-        right_type: RuntimeType,
-    ) {
-        let msg = format!(
-            "operator {} is not defined for {} and {}",
-            op_token.text.red(),
-            left_type.to_string().bright_yellow(),
-            right_type.to_string().bright_yellow()
-        );
-        self.report(msg);
-    }
-
-    pub(crate) fn report_invalid_unary_op(&self, op_token: Token, operand_type: RuntimeType) {
-        let msg = format!(
-            "operator {} is not defined for {}",
-            op_token.text.red(),
-            operand_type.to_string().bright_yellow()
-        );
-        self.report(msg);
     }
 }
 

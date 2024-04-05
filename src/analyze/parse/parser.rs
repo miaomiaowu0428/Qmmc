@@ -36,7 +36,7 @@ use crate::analyze::parse::expression::Expression::UnaryExpression;
 use crate::analyze::parse::expression::{Expression, IdentifierTypePair};
 use crate::analyze::parse::Expression::{
     BracketedExpression, ConditionalBranchExpression, ContinueExpression, FunctionCallExpression,
-    FunctionDeclarationExpression, FunctionTypeExpression, Statement,
+    FunctionDeclarationExpression, Statement,
 };
 
 pub struct Parser {

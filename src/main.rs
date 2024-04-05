@@ -20,7 +20,7 @@ use crate::IR_building::IRBuilder;
 mod IR_building;
 mod analyze;
 mod compile;
-mod runtime;
+pub(crate) mod runtime;
 
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
