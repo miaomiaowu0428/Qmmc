@@ -627,6 +627,18 @@ impl Compiler {
                 self.check_return_type(name, e, &res_type);
             }
         }
+        if expressions.len() == 0 {
+            if res_type != Unit {
+                self.diagnostics.report(format!(
+                    "function {} expects return type {}, but the function body is empty",
+                    name.red(),
+                    format!("{:?}", res_type).green()
+                ));
+            }
+            expressions.push(CheckedExpression::Literal {
+                value: LiteralExpr::None,
+            });
+        }
         CheckedExpression::Block { expressions }
     }
 

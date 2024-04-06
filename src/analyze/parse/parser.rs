@@ -62,9 +62,7 @@ impl Parser {
     }
 
     fn parse_expression(&self) -> Expression {
-        while self.current().token_type == EndLineToken {
-            self.move_next();
-        }
+        self.ignore_new_line_tokens();
 
         let expr = match self.current().token_type {
             ValKeyword | VarKeyword => self.parse_declaration_expression(),
@@ -96,9 +94,7 @@ impl Parser {
             _ => expr,
         };
 
-        while self.current().token_type == EndLineToken {
-            self.move_next();
-        }
+        self.ignore_new_line_tokens();
 
         res
     }
@@ -138,6 +134,7 @@ impl Parser {
 
         // function body
         let body = self.parse_block();
+
         FunctionDeclarationExpression {
             fun_token,
             identifier_token,
@@ -255,9 +252,16 @@ impl Parser {
         }
     }
 
+    fn ignore_new_line_tokens(&self) {
+        while self.current().token_type == EndLineToken {
+            self.move_next();
+        }
+    }
+
     fn parse_block(&self) -> Expression {
         let lb = self.move_next();
         let block = Block::new();
+        self.ignore_new_line_tokens();
         while self.current().token_type != RightBraceToken
             && self.current().token_type != EndOfFileToken
         {

@@ -423,7 +423,7 @@ impl<'ctx> IRBuilder<'ctx> {
                     todo!("{}", "String literal not implemented".red());
                 }
                 LiteralExpr::None => {
-                    self.diagnostics.report("Invalid literal: None".to_string());
+                    // self.diagnostics.report("Invalid literal: None".to_string());
                     Box::from(self.zst_value)
                 }
             },
