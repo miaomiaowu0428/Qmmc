@@ -36,8 +36,8 @@ use TokenType::{AndKeyword, GreatThanToken, LessThanToken, PercentToken, WhileKe
 use TokenType::{BadToken, CharToken};
 
 use crate::analyze::lex::TokenType::{
-    ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, LiteralStringToken,
-    ReturnKeyword,
+    ArrowToken, ColonToken, CommaToken, ContinueToken, FunKeyword, ImportKeyword,
+    LiteralStringToken, PubKeyword, ReturnKeyword,
 };
 
 #[derive(Clone)]
@@ -157,6 +157,8 @@ pub enum TokenType {
     MutKeyword,
     ConstKeyword,
     AsKeyword,
+    PubKeyword,
+    ImportKeyword,
 }
 
 impl TokenType {
@@ -238,6 +240,8 @@ impl Debug for TokenType {
             MutKeyword => "MutKeyword",
             ConstKeyword => "ConstKeyword",
             AsKeyword => "AsKeyword",
+            PubKeyword => "PubKeyword",
+            ImportKeyword => "ImportKeyword",
         };
         write!(f, "{}", string)
     }

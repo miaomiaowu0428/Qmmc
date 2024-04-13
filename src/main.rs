@@ -25,7 +25,7 @@ pub(crate) mod runtime;
 static PATH: &str = "./resource/";
 static RES_PATH: &str = "./res/";
 
-static FILE_NAME: &str = "main";
+static FILE_NAME: &str = "test_ptr_of_ptr";
 
 fn main() {
     let mut file = File::open(Path::new(&format!("{}{}{}", PATH, FILE_NAME, ".qmm")))

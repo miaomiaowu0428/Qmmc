@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 
-use TokenType::BangEqualsToken;
 use TokenType::BangToken;
 use TokenType::ElseKeyword;
 use TokenType::EndOfFileToken;
@@ -27,6 +26,7 @@ use TokenType::WhileKeyword;
 use TokenType::WhitespaceToken;
 use TokenType::{AndKeyword, CharToken, LiteralStringToken};
 use TokenType::{AsKeyword, BadToken, MutKeyword};
+use TokenType::{BangEqualsToken, ImportKeyword, PubKeyword};
 use TokenType::{
     BreakKeyword, ColonToken, CommaToken, ContinueToken, FunKeyword, GreatThanToken, IfKeyword,
     LessThanToken, LoopKeyword, PercentToken, ReturnKeyword,
@@ -219,6 +219,8 @@ impl Lexer {
             "mut" => MutKeyword,
             "const" => ConstKeyword,
             "as" => AsKeyword,
+            "pub" => PubKeyword,
+            "import" => ImportKeyword,
             _ => IdentifierToken,
         };
         Token::new(token_type, text, start_line, start_column)

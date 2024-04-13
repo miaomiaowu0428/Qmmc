@@ -88,10 +88,7 @@ impl<'ctx> IRBuilder<'ctx> {
     pub fn save_as(&self, path: &str) {
         let path = std::path::Path::new(path);
         match self.module.print_to_file(&path) {
-            Ok(_) => println!(
-                "{}",
-                format!("{:<26}: {}", "Successfully compiled to", path.display()).green()
-            ),
+            Ok(_) => {}
             Err(e) => self
                 .diagnostics
                 .report(format!("Failed to write to file: {}", e.to_string())),
@@ -835,17 +832,6 @@ impl<'ctx> IRBuilder<'ctx> {
                 aim_expr,
                 expression,
             } => {
-                // let var = self
-                //     .symbol_table
-                //     .get(&identifier.text)
-                //     .expect(&format!("{} not found", identifier.text.red()));
-                // let value = self.build_basic_value(*expression).unwrap();
-                // self.builder
-                //     .build_store(
-                //         PointerValue::try_from(var).unwrap(),
-                //         value.as_basic_value_enum(),
-                //     )
-                //     .expect("build store failed");
                 self.build_assignment(*aim_expr, *expression);
                 Box::from(self.zst_value)
             }
@@ -866,20 +852,30 @@ impl<'ctx> IRBuilder<'ctx> {
                     .expect(&format!("{} not found", name.text.red()));
                 Box::from(BasicValueEnum::from(var))
             }
-            CheckedExpression::Unary { op, operand } => match op.operator_type {
-                UnaryOperatorType::Dereference => {
-                    let v = self.build_basic_value(*operand).unwrap();
-                    if let BasicValueEnum::PointerValue(p) = v.as_basic_value_enum() {
-                        Box::from(BasicValueEnum::from(p))
-                    } else {
-                        self.diagnostics
-                            .report(format!("'deref' is not defined for {:?}", v));
-                        Box::from(self.zst_value)
-                    }
+            CheckedExpression::Unary { op, operand }
+                if op.operator_type == UnaryOperatorType::Dereference =>
+            {
+                let v = match *operand.clone() {
+                    CheckedExpression::VariableName { name } => self
+                        .build_basic_value(*operand) // 内部会有一个load,因为这个arm是对一个ptr的deref做store,上面没有load是因为直接对变量名对应的ptr做store
+                        .unwrap()
+                        .as_basic_value_enum()
+                        .into_pointer_value(),
+                    _ => {
+                        let aim_ptr = self.build_aim(*operand).into_pointer_value();
+                        self.builder
+                            .build_load(aim_ptr, "deref")
+                            .expect("build load failed")
+                            .into_pointer_value()
+                    },
+                };
+                if let BasicValueEnum::PointerValue(p) = v.as_basic_value_enum() {
+                    Box::new(p.as_basic_value_enum())
+                } else {
+                    panic!("Error while build assignment aim")
                 }
-                _ => todo!("{}: {:#?}", "表达式必须是可修改的左值: \n".red(), op),
-            },
-            _ => todo!("{}: {:#?}", "表达式必须是可修改的左值: \n".red(), aim),
+            }
+            _ => panic!("{}: {:#?}", "表达式必须是可修改的左值: \n".red(), aim),
         }
     }
 
