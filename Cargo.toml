@@ -1,7 +1,7 @@
 [package]
 name = "Qmmc"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "Qmmc"
@@ -11,5 +11,5 @@ path = "src/lib.rs"
 [dependencies]
 colored = "2.1.0"
 lazy_static = "1.4.0"
-inkwell = { version = "0.4.0", features = ["llvm10-0"] }
-llvm-ir = { version = "0.11.0", features = ["llvm-10"] }
+inkwell = { version = "0.6.0", features = ["llvm14-0"] }
+# llvm-ir = { version = "0.11.0", features = ["llvm-10"] }

@@ -85,15 +85,22 @@ impl<'ctx> IRBuilder<'ctx> {
         );
     }
 
-    pub fn save_as(&self, path: &str) {
-        let path = std::path::Path::new(path);
-        match self.module.print_to_file(&path) {
-            Ok(_) => {}
-            Err(e) => self
-                .diagnostics
-                .report(format!("Failed to write to file: {}", e.to_string())),
-        }
+pub fn save_as(&self, path: &str) {
+    let path = std::path::Path::new(path);
+    
+    // 创建父目录
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .unwrap_or_else(|e| panic!("无法创建目录 {}: {}", parent.display(), e));
     }
+
+    match self.module.print_to_file(&path) {
+        Ok(_) => {}
+        Err(e) => self
+            .diagnostics
+            .report(format!("文件写入失败: {}", e.to_string())),
+    }
+}
 
     pub fn print_res(&self) {
         println!("{}", self.module.print_to_string().to_string());
